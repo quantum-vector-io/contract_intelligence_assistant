@@ -93,23 +93,57 @@ open http://localhost:8000/docs  # FastAPI docs
 ```
 contract-intelligence-assistant/
 ├── src/
-│   ├── api/                 # FastAPI backend
-│   │   ├── main.py         # API endpoints
-│   │   ├── models.py       # Pydantic models
-│   │   └── services/       # Business logic
-│   ├── rag/                # RAG pipeline
-│   │   ├── document_processor.py
-│   │   ├── vector_store.py
-│   │   └── retriever.py
-│   └── ui/                 # Streamlit interface
-│       ├── app.py          # Main UI
-│       ├── pages/          # Multi-page app
-│       └── components/     # Reusable UI components
+│   ├── api/                    # FastAPI endpoints
+│   │   ├── __init__.py
+│   │   ├── main.py            # FastAPI app setup
+│   │   ├── dependencies.py    # DI container
+│   │   └── routers/           # Route handlers
+│   │       ├── documents.py
+│   │       ├── query.py
+│   │       └── analytics.py
+│   │
+│   ├── services/              # Business Logic Layer
+│   │   ├── __init__.py
+│   │   ├── document_service.py     # Document processing
+│   │   ├── query_service.py        # RAG orchestration  
+│   │   ├── analytics_service.py    # Metrics & insights
+│   │   └── ai_service.py           # LLM interactions
+│   │
+│   ├── repositories/          # Data Access Layer
+│   │   ├── __init__.py
+│   │   ├── base_repository.py      # Abstract base
+│   │   ├── document_repository.py  # Document CRUD
+│   │   └── vector_repository.py    # OpenSearch ops
+│   │
+│   ├── models/                # Domain Models
+│   │   ├── __init__.py
+│   │   ├── document.py        # Document entities
+│   │   ├── query.py           # Query models
+│   │   └── analytics.py       # Analytics models
+│   │
+│   ├── infrastructure/        # External Integrations
+│   │   ├── __init__.py
+│   │   ├── opensearch/        # Vector DB client
+│   │   ├── llm/              # LLM providers
+│   │   │   ├── base_llm.py   # Abstract interface
+│   │   │   ├── openai_llm.py # OpenAI implementation
+│   │   │   └── factory.py    # LLM Factory
+│   │   └── storage/          # File handling
+│   │
+│   ├── ui/                   # Streamlit Interface
+│   │   ├── app.py           # Main Streamlit app
+│   │   ├── pages/           # Multi-page components
+│   │   └── components/      # Reusable UI parts
+│   │
+│   └── core/               # Shared utilities
+│       ├── config.py       # Settings management
+│       ├── exceptions.py   # Custom exceptions
+│       └── utils.py        # Helper functions
+│
+├── tests/                  # Test suites
 ├── data/                   # Sample documents
-├── docker-compose.yml      # Service orchestration  
-├── Dockerfile             # Container definition
-├── requirements.txt       # Python dependencies
-└── README.md              # This file
+├── docker-compose.yml      # Service orchestration
+└── requirements.txt        # Dependencies
 ```
 
 ## 🔧 API Endpoints
