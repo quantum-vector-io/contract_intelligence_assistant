@@ -91,25 +91,26 @@ open http://localhost:8000/docs  # FastAPI docs
 
 ### Project Structure
 ```
-contract-intelligence-assistant/
-├── src/
-│   ├── api/                 # FastAPI backend
-│   │   ├── main.py         # API endpoints
-│   │   ├── models.py       # Pydantic models
-│   │   └── services/       # Business logic
-│   ├── rag/                # RAG pipeline
-│   │   ├── document_processor.py
-│   │   ├── vector_store.py
-│   │   └── retriever.py
-│   └── ui/                 # Streamlit interface
-│       ├── app.py          # Main UI
-│       ├── pages/          # Multi-page app
-│       └── components/     # Reusable UI components
-├── data/                   # Sample documents
-├── docker-compose.yml      # Service orchestration  
-├── Dockerfile             # Container definition
-├── requirements.txt       # Python dependencies
-└── README.md              # This file
+src/
+├── api/
+│   ├── main.py                 # FastAPI app
+│   └── endpoints.py            # Single /analyze endpoint
+├── services/
+│   ├── document_service.py     # File parsing
+│   ├── embedding_service.py    # OpenAI embeddings  
+│   ├── search_service.py       # OpenSearch ops
+│   └── analysis_service.py     # RAG orchestration
+├── infrastructure/
+│   ├── opensearch_client.py    # OpenSearch connection
+│   └── openai_client.py        # OpenAI connection
+├── models/
+│   └── schemas.py              # Pydantic models
+├── core/
+│   ├── config.py               # Settings
+│   └── prompts.py              # LLM prompts
+└── ui/
+    └── app.py                  # Streamlit interface
+
 ```
 
 ## 🔧 API Endpoints
