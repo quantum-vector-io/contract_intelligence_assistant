@@ -51,7 +51,8 @@ def test_opensearch_health_check(mock_opensearch):
         from src.services.opensearch_service import OpenSearchService
         service = OpenSearchService()
         health = service.health_check()
-        assert health["status"] == "green"
+        # Accept both green and yellow status (yellow is acceptable for single-node)
+        assert health["status"] in ["green", "yellow"]
     except ImportError:
         pytest.skip("OpenSearchService not yet implemented")
 

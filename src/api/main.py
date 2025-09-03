@@ -58,8 +58,8 @@ async def health_check():
 # Task 3: Core /analyze endpoint for orchestrating indexing + querying
 @app.post("/analyze")
 async def analyze_documents(
-    contract_file: UploadFile = File(..., description="Partnership contract document"),
-    payout_file: UploadFile = File(..., description="Payout report document"),
+    contract_file: UploadFile = File(None, description="Partnership contract document"),
+    payout_file: UploadFile = File(None, description="Payout report document"),
     question: str = Form(..., description="Question to analyze")
 ):
     """
@@ -95,69 +95,92 @@ async def analyze_documents(
             "error": None
         }
         
+        # Validate that we have at least one real file (not dummy)
+        has_real_contract = contract_file is not None and contract_file.filename != "dummy_contract.txt"
+        has_real_payout = payout_file is not None and payout_file.filename != "dummy_payout.txt"
+        
+        if not has_real_contract and not has_real_payout:
+            results["error"] = "No valid files provided for analysis"
+            results["analysis_successful"] = False
+            return results
+        
         # Process contract file
         contract_temp_path = None
-        try:
-            # Create temporary file for contract
-            with tempfile.NamedTemporaryFile(
-                delete=False, 
-                suffix=os.path.splitext(contract_file.filename or ".pdf")[1]
-            ) as temp_file:
-                content = await contract_file.read()
-                temp_file.write(content)
-                contract_temp_path = temp_file.name
-            
-            # Index contract with metadata
-            contract_metadata = {
-                "partner_name": partner_name,
-                "document_type": "contract",
-                "partner_id": session_id,
-                "original_filename": contract_file.filename,
-                "session_id": session_id
-            }
-            
-            contract_result = indexing_service.index_file(contract_temp_path, contract_metadata)
-            results["contract_indexed"] = contract_result.get("status") == "success"
-            
-        finally:
-            # Clean up contract temp file
-            if contract_temp_path and os.path.exists(contract_temp_path):
-                os.unlink(contract_temp_path)
+        if has_real_contract:
+            try:
+                # Create temporary file for contract
+                with tempfile.NamedTemporaryFile(
+                    delete=False, 
+                    suffix=os.path.splitext(contract_file.filename or ".pdf")[1]
+                ) as temp_file:
+                    content = await contract_file.read()
+                    temp_file.write(content)
+                    contract_temp_path = temp_file.name
+                
+                # Index contract with metadata
+                contract_metadata = {
+                    "partner_name": partner_name,
+                    "document_type": "contract",
+                    "partner_id": session_id,
+                    "original_filename": contract_file.filename,
+                    "session_id": session_id
+                }
+                
+                contract_result = indexing_service.index_file(contract_temp_path, contract_metadata)
+                results["contract_indexed"] = contract_result.get("status") == "success"
+                
+            except Exception as e:
+                logger.error(f"Error processing contract file: {e}")
+                results["contract_indexed"] = False
+            finally:
+                # Clean up contract temp file
+                if contract_temp_path and os.path.exists(contract_temp_path):
+                    os.unlink(contract_temp_path)
         
         # Process payout file
         payout_temp_path = None
-        try:
-            # Create temporary file for payout report
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=os.path.splitext(payout_file.filename or ".pdf")[1]
-            ) as temp_file:
-                content = await payout_file.read()
-                temp_file.write(content)
-                payout_temp_path = temp_file.name
-            
-            # Index payout report with metadata
-            payout_metadata = {
-                "partner_name": partner_name,
-                "document_type": "payout_report",
-                "partner_id": session_id,
-                "original_filename": payout_file.filename,
-                "session_id": session_id
-            }
-            
-            payout_result = indexing_service.index_file(payout_temp_path, payout_metadata)
-            results["payout_indexed"] = payout_result.get("status") == "success"
-            
-        finally:
-            # Clean up payout temp file
-            if payout_temp_path and os.path.exists(payout_temp_path):
-                os.unlink(payout_temp_path)
-        
-        # Perform RAG analysis if both documents were indexed successfully
-        if results["contract_indexed"] and results["payout_indexed"]:
+        if has_real_payout:
             try:
-                # Use the RAG chain to analyze the documents
-                analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question)
+                # Create temporary file for payout report
+                with tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=os.path.splitext(payout_file.filename or ".pdf")[1]
+                ) as temp_file:
+                    content = await payout_file.read()
+                    temp_file.write(content)
+                payout_temp_path = temp_file.name
+                
+                # Index payout report with metadata
+                payout_metadata = {
+                    "partner_name": partner_name,
+                    "document_type": "payout_report",
+                    "partner_id": session_id,
+                    "original_filename": payout_file.filename,
+                    "session_id": session_id
+                }
+                
+                payout_result = indexing_service.index_file(payout_temp_path, payout_metadata)
+                results["payout_indexed"] = payout_result.get("status") == "success"
+                
+            except Exception as e:
+                results["error"] = f"Failed to process payout file: {str(e)}"
+                logger.error(f"Payout file processing failed: {e}")
+                
+            finally:
+                # Clean up payout temp file
+                if payout_temp_path and os.path.exists(payout_temp_path):
+                    os.unlink(payout_temp_path)
+        
+        # Perform RAG analysis if at least one document was indexed successfully
+        if results["contract_indexed"] or results["payout_indexed"]:
+            try:
+                # If we have both documents, use contract discrepancy analysis
+                if results["contract_indexed"] and results["payout_indexed"]:
+                    analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question)
+                else:
+                    # If we only have one document, use general query analysis
+                    analysis_result = rag_chain.query_all_documents(question)
+                
                 results["analysis_successful"] = True
                 results["answer"] = analysis_result
                 
@@ -165,15 +188,15 @@ async def analyze_documents(
                 results["error"] = f"Analysis failed: {str(e)}"
                 logger.error(f"RAG analysis failed: {e}")
         else:
-            results["error"] = "Failed to index one or both documents"
+            results["error"] = "Failed to index any documents"
         
         # Return comprehensive results
         return {
             "status": "success" if results["analysis_successful"] else "error",
             "session_id": session_id,
             "question": question,
-            "contract_file": contract_file.filename,
-            "payout_file": payout_file.filename,
+            "contract_file": contract_file.filename if contract_file else None,
+            "payout_file": payout_file.filename if payout_file else None,
             "contract_indexed": results["contract_indexed"],
             "payout_indexed": results["payout_indexed"],
             "analysis_successful": results["analysis_successful"],
@@ -204,17 +227,45 @@ async def query_database(request: dict):
         from src.services.rag_service import FinancialAnalystRAGChain
         rag_chain = FinancialAnalystRAGChain()
         
+        # Check if there are any documents in the database first
+        from src.services.opensearch_service import OpenSearchService
+        opensearch_service = OpenSearchService()
+        
+        # Get document count
+        count_response = opensearch_service.client.count(
+            index=opensearch_service.index_name
+        )
+        doc_count = count_response.get("count", 0)
+        
+        if doc_count == 0:
+            return {
+                "status": "no_documents",
+                "question": question,
+                "answer": "🔍 No documents found in the database. Please upload some contract documents first to use the database query feature.",
+                "suggestion": "Upload PDF contracts or payout reports to build your document database, then try your query again."
+            }
+        
         answer = rag_chain.query_all_documents(question)
         
         return {
             "status": "success",
             "question": question,
-            "answer": answer
+            "answer": answer,
+            "documents_found": doc_count
         }
         
     except Exception as e:
         logger.error(f"Query endpoint failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+        # Provide more specific error information
+        if "index_not_found_exception" in str(e).lower():
+            return {
+                "status": "no_index",
+                "question": question,
+                "answer": "🔍 Document database is not initialized. Please upload some documents first to create the search index.",
+                "suggestion": "Upload PDF contracts or payout reports to initialize the database, then try your query again."
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
