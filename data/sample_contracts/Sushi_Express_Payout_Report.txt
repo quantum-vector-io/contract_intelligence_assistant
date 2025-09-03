@@ -1,0 +1,33 @@
+WEEKLY PAYOUT STATEMENT
+=======================
+Restaurant: Sushi Express 24/7
+Partner ID: rest-789
+Statement Period: January 15-21, 2024
+
+ORDER SUMMARY:
+Total Orders: 178
+Orders Delivered: 172
+Gross Order Value: £4,267.50
+Average Order Value: £23.94
+
+COMMISSION BREAKDOWN:
+Regular Orders (145): £3,450.00 × 25.0% = £862.50
+Promotional Orders (27): £697.50 × 22.0% = £153.45
+Volume Bonus Applied: 23.0% rate (GMV > £4,000)
+TOTAL COMMISSION: £981.53
+
+ADDITIONAL EARNINGS:
+Delivery Fees: 172 × £2.00 = £344.00
+
+DEDUCTIONS:
+Marketing Fee: £4,267.50 × 2.5% = -£106.69
+Late Penalties: 3 incidents × £8.00 = -£24.00
+Service Fees: 178 × £0.75 = -£133.50
+TOTAL DEDUCTIONS: -£264.19
+
+FINAL PAYOUT: £1,061.34
+
+DISCREPANCY NOTES:
+Expected commission (25%): £1,066.88
+Actual commission: £981.53
+Difference due to promotional rates and volume bonus applied

@@ -91,59 +91,26 @@ open http://localhost:8000/docs  # FastAPI docs
 
 ### Project Structure
 ```
-contract-intelligence-assistant/
-├── src/
-│   ├── api/                    # FastAPI endpoints
-│   │   ├── __init__.py
-│   │   ├── main.py            # FastAPI app setup
-│   │   ├── dependencies.py    # DI container
-│   │   └── routers/           # Route handlers
-│   │       ├── documents.py
-│   │       ├── query.py
-│   │       └── analytics.py
-│   │
-│   ├── services/              # Business Logic Layer
-│   │   ├── __init__.py
-│   │   ├── document_service.py     # Document processing
-│   │   ├── query_service.py        # RAG orchestration  
-│   │   ├── analytics_service.py    # Metrics & insights
-│   │   └── ai_service.py           # LLM interactions
-│   │
-│   ├── repositories/          # Data Access Layer
-│   │   ├── __init__.py
-│   │   ├── base_repository.py      # Abstract base
-│   │   ├── document_repository.py  # Document CRUD
-│   │   └── vector_repository.py    # OpenSearch ops
-│   │
-│   ├── models/                # Domain Models
-│   │   ├── __init__.py
-│   │   ├── document.py        # Document entities
-│   │   ├── query.py           # Query models
-│   │   └── analytics.py       # Analytics models
-│   │
-│   ├── infrastructure/        # External Integrations
-│   │   ├── __init__.py
-│   │   ├── opensearch/        # Vector DB client
-│   │   ├── llm/              # LLM providers
-│   │   │   ├── base_llm.py   # Abstract interface
-│   │   │   ├── openai_llm.py # OpenAI implementation
-│   │   │   └── factory.py    # LLM Factory
-│   │   └── storage/          # File handling
-│   │
-│   ├── ui/                   # Streamlit Interface
-│   │   ├── app.py           # Main Streamlit app
-│   │   ├── pages/           # Multi-page components
-│   │   └── components/      # Reusable UI parts
-│   │
-│   └── core/               # Shared utilities
-│       ├── config.py       # Settings management
-│       ├── exceptions.py   # Custom exceptions
-│       └── utils.py        # Helper functions
-│
-├── tests/                  # Test suites
-├── data/                   # Sample documents
-├── docker-compose.yml      # Service orchestration
-└── requirements.txt        # Dependencies
+src/
+├── api/
+│   ├── main.py                 # FastAPI app
+│   └── endpoints.py            # Single /analyze endpoint
+├── services/
+│   ├── document_service.py     # File parsing
+│   ├── embedding_service.py    # OpenAI embeddings  
+│   ├── search_service.py       # OpenSearch ops
+│   └── analysis_service.py     # RAG orchestration
+├── infrastructure/
+│   ├── opensearch_client.py    # OpenSearch connection
+│   └── openai_client.py        # OpenAI connection
+├── models/
+│   └── schemas.py              # Pydantic models
+├── core/
+│   ├── config.py               # Settings
+│   └── prompts.py              # LLM prompts
+└── ui/
+    └── app.py                  # Streamlit interface
+
 ```
 
 ## 🔧 API Endpoints

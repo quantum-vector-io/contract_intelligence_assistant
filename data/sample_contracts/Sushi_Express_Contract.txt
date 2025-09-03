@@ -1,0 +1,26 @@
+RESTAURANT PARTNERSHIP AGREEMENT
+=================================
+
+Restaurant Name: Sushi Express 24/7
+Partner ID: rest-789
+Contract Date: January 1, 2024
+
+COMMISSION STRUCTURE:
+• Base Commission Rate: 25.0% of gross order value
+• Promotional Campaign Rate: 22.0% (during active campaigns)
+• Volume Incentive: 23.0% if weekly GMV exceeds £4,000
+
+FEES AND CHARGES:
+• Delivery Service Fee: £2.00 per delivered order
+• Marketing Contribution: 2.5% of monthly GMV
+• Late Order Penalty: £8.00 per incident (>25 minutes prep)
+• Service Processing Fee: £0.75 per order processed
+
+PAYMENT TERMS:
+• Weekly payments every Wednesday
+• Currency: GBP (British Pounds)
+• Net-7 payment terms
+
+PROMOTIONAL CAMPAIGNS:
+• January 2024: New Year Special (22% commission rate)
+• Campaign codes: NY2024, NEWYEAR
