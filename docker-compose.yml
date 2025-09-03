@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # OpenSearch - Document storage and search
   opensearch:
     image: opensearchproject/opensearch:2.11.1
     container_name: opensearch
@@ -28,6 +27,7 @@ services:
       timeout: 10s
       retries: 5
 
+  # OpenSearch Dashboards - Management UI
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.11.1
     container_name: opensearch-dashboards
@@ -41,6 +41,34 @@ services:
         condition: service_healthy
     networks:
       - app-network
+
+  # Contract Intelligence Application (FastAPI + Streamlit)
+  contract-intelligence-app:
+    build: .
+    container_name: contract-intelligence-app
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"  # FastAPI
+      - "8501:8501"  # Streamlit
+    environment:
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
 networks:
   app-network:

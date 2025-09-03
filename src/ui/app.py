@@ -109,16 +109,38 @@ if st.button("🔍 Analyze", type="primary"):
                         if response.status_code == 200:
                             result = response.json()
                             ai_response = result.get("answer", "No response received")
+                            status = result.get("status", "success")
                             
-                            # Display successful analysis
-                            st.success("✅ Database Query Complete!")
-                            
-                            # Display the AI response
-                            st.markdown("### 🤖 AI Analysis")
-                            st.markdown("**Your Question:**")
-                            st.info(query)
-                            st.markdown("**AI Response:**")
-                            st.markdown(ai_response)
+                            # Handle different response types
+                            if status == "no_documents":
+                                st.warning("📂 Database is Empty")
+                                st.info(ai_response)
+                                suggestion = result.get("suggestion", "")
+                                if suggestion:
+                                    st.info(f"💡 **Suggestion:** {suggestion}")
+                                    
+                            elif status == "no_index":
+                                st.warning("🔧 Database Not Initialized")
+                                st.info(ai_response)
+                                suggestion = result.get("suggestion", "")
+                                if suggestion:
+                                    st.info(f"💡 **Suggestion:** {suggestion}")
+                                    
+                            else:
+                                # Display successful analysis
+                                st.success("✅ Database Query Complete!")
+                                
+                                # Show document count if available
+                                doc_count = result.get("documents_found")
+                                if doc_count:
+                                    st.info(f"📊 Searched across {doc_count} document chunks")
+                                
+                                # Display the AI response
+                                st.markdown("### 🤖 AI Analysis")
+                                st.markdown("**Your Question:**")
+                                st.info(query)
+                                st.markdown("**AI Response:**")
+                                st.markdown(ai_response)
                             
                         else:
                             st.error(f"❌ Query failed ({response.status_code})")
