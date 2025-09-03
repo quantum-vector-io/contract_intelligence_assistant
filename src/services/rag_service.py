@@ -266,6 +266,97 @@ ANALYSIS:"""
         
         return summary
 
+    def query_all_documents(self, question: str, max_docs: int = 15) -> str:
+        """
+        Query across all documents in the database, not limited to a specific partner.
+        
+        Args:
+            question: The question to search for
+            max_docs: Maximum number of document chunks to include
+            
+        Returns:
+            AI analysis based on relevant documents from across the database
+        """
+        try:
+            # Search across all documents using semantic search
+            search_body = {
+                "size": max_docs,
+                "query": {
+                    "match_all": {}  # Get all documents, we'll filter by relevance
+                },
+                "_source": ["content", "document_type", "partner_name", "chunk_id", "file_name"]
+            }
+            
+            response = self.opensearch_service.client.search(
+                index=self.opensearch_service.index_name,
+                body=search_body
+            )
+            
+            # Convert to LangChain documents
+            all_docs = []
+            for hit in response["hits"]["hits"]:
+                source = hit["_source"]
+                doc = Document(
+                    page_content=source.get("content", ""),
+                    metadata={
+                        "document_type": source.get("document_type", "unknown"),
+                        "partner_name": source.get("partner_name", "unknown"),
+                        "chunk_id": source.get("chunk_id", ""),
+                        "file_name": source.get("file_name", "unknown")
+                    }
+                )
+                all_docs.append(doc)
+            
+            if not all_docs:
+                return "No documents found in the database."
+            
+            # Simple relevance scoring based on keyword overlap
+            query_keywords = set(question.lower().split())
+            
+            scored_docs = []
+            for doc in all_docs:
+                content_keywords = set(doc.page_content.lower().split())
+                score = len(query_keywords.intersection(content_keywords))
+                scored_docs.append((score, doc))
+            
+            # Sort by relevance score and take top documents
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            relevant_docs = [doc for score, doc in scored_docs[:max_docs] if score > 0]
+            
+            # If no keyword matches, take some documents anyway
+            if not relevant_docs:
+                relevant_docs = all_docs[:5]
+            
+            # Format context for analysis
+            context_parts = []
+            for i, doc in enumerate(relevant_docs):
+                doc_type = doc.metadata.get('document_type', 'unknown')
+                partner = doc.metadata.get('partner_name', 'unknown')
+                context_parts.append(
+                    f"DOCUMENT {i+1} ({doc_type.upper()}) - Partner: {partner}:\n"
+                    f"Content: {doc.page_content}\n"
+                    f"---"
+                )
+            
+            context = "\n\n".join(context_parts)
+            
+            # Generate analysis using the financial analyst prompt
+            response = self.llm.invoke(
+                self.financial_analyst_prompt.format(
+                    context=context,
+                    question=question
+                )
+            )
+            
+            analysis = response.content if hasattr(response, 'content') else str(response)
+            
+            logger.info(f"Generated database query analysis for: {question}")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error querying all documents: {e}")
+            raise
+
 
 def test_rag_chain():
     """Test the Financial Analyst RAG chain with Sushi Express documents."""
