@@ -88,8 +88,8 @@ class OpenSearchService:
                         "type": "object"
                     },
                     "embedding": {
-                        "type": "dense_vector",
-                        "dims": 1536  # OpenAI embeddings dimension
+                        "type": "float",
+                        "index": False
                     },
                     "created_at": {
                         "type": "date"
