@@ -10,6 +10,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from src.core.config import settings
+from src.api.routers import opensearch
 
 # Create FastAPI application
 app = FastAPI(
@@ -27,6 +28,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(opensearch.router)
 
 @app.get("/")
 async def root():
