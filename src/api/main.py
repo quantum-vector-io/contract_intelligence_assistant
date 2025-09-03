@@ -185,6 +185,37 @@ async def analyze_documents(
         logger.error(f"Analysis endpoint failed: {e}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+@app.post("/query")
+async def query_database(request: dict):
+    """
+    Database-only query endpoint for searching existing documents.
+    
+    This endpoint:
+    1. Accepts a question in JSON format
+    2. Uses the RAG chain to search existing indexed documents
+    3. Returns the AI's response without indexing new documents
+    """
+    try:
+        question = request.get("question", "")
+        if not question:
+            raise HTTPException(status_code=400, detail="Question is required")
+        
+        # Use RAG service to query existing documents
+        from src.services.rag_service import FinancialAnalystRAGChain
+        rag_chain = FinancialAnalystRAGChain()
+        
+        answer = rag_chain.query_all_documents(question)
+        
+        return {
+            "status": "success",
+            "question": question,
+            "answer": answer
+        }
+        
+    except Exception as e:
+        logger.error(f"Query endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=settings.api_host, port=settings.api_port)
