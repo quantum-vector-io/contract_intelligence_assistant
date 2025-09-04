@@ -120,8 +120,8 @@ class DocumentProcessor:
     
     def _extract_pdf_text(self, file_path: str) -> str:
         """
-        Extract text from a PDF using pdfplumber's layout-aware text extraction.
-        This method is often better at preserving spaces than other methods.
+        Extract text from a PDF using pdfplumber with enhanced table handling.
+        This method preserves table structure and layout-aware text extraction.
         """
         if not pdfplumber:
             logger.error("pdfplumber is not installed. Cannot process PDF files.")
@@ -130,24 +130,50 @@ class DocumentProcessor:
         text = ""
         try:
             with pdfplumber.open(file_path) as pdf:
-                # Use layout=True to leverage pdfminer.six's layout analysis,
-                # which is better at reconstructing original spacing.
-                # x_tolerance=1 helps distinguish between close-but-separate words.
-                page_texts = [
-                    p.extract_text(layout=True, x_tolerance=1) 
-                    for p in pdf.pages if p.extract_text()
-                ]
+                page_texts = []
+                
+                for page_num, page in enumerate(pdf.pages):
+                    page_text = ""
+                    
+                    # Extract tables first
+                    tables = page.extract_tables()
+                    if tables:
+                        logger.info(f"Found {len(tables)} tables on page {page_num + 1}")
+                        for table_num, table in enumerate(tables):
+                            page_text += f"\n[TABLE {table_num + 1}]\n"
+                            for row in table:
+                                if row:  # Skip empty rows
+                                    # Clean and join row cells
+                                    cleaned_row = [str(cell).strip() if cell else "" for cell in row]
+                                    page_text += " | ".join(cleaned_row) + "\n"
+                            page_text += "[END TABLE]\n\n"
+                    
+                    # Extract regular text (excluding table areas if possible)
+                    try:
+                        # Try to get text outside of tables
+                        regular_text = page.extract_text(layout=True, x_tolerance=1)
+                        if regular_text:
+                            page_text += regular_text
+                    except:
+                        # Fallback to basic text extraction
+                        regular_text = page.extract_text()
+                        if regular_text:
+                            page_text += regular_text
+                    
+                    if page_text.strip():
+                        page_texts.append(page_text)
+
                 text = "\n\n".join(page_texts)
 
             # Apply a light cleaning pass
             cleaned_text = self._clean_extracted_text(text)
 
             if cleaned_text.strip():
-                logger.info(f"Successfully extracted text from '{file_path}' using pdfplumber (layout=True).")
+                logger.info(f"Successfully extracted text from '{file_path}' using pdfplumber with table handling.")
                 return cleaned_text
             else:
-                # If layout=True returns nothing, try without it as a fallback
-                logger.warning(f"Layout-aware extraction for '{file_path}' yielded empty text. Trying basic extraction.")
+                # If enhanced extraction returns nothing, try basic fallback
+                logger.warning(f"Enhanced extraction for '{file_path}' yielded empty text. Trying basic extraction.")
                 with pdfplumber.open(file_path) as pdf:
                     page_texts = [p.extract_text() for p in pdf.pages if p.extract_text()]
                     text = "\n\n".join(page_texts)

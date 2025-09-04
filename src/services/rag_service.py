@@ -18,6 +18,7 @@ from langchain.schema.output_parser import StrOutputParser
 from src.services.langchain_document_service import LangChainDocumentProcessor
 from src.services.opensearch_service import OpenSearchService
 from src.core.config import settings
+from src.core.prompts import EXPERT_ANALYST_PROMPT, ANALYSIS_REPORT_FORMAT, EXECUTIVE_SUMMARY_PROMPT, FINANCIAL_ANALYST_PROMPT_LEGACY, SIMPLE_DATABASE_QUERY_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -46,38 +47,32 @@ class FinancialAnalystRAGChain:
             openai_api_key=settings.openai_api_key
         )
         
-        # Financial analyst master prompt as required by Task 2
+        # Financial analyst prompts - now using centralized prompts
+        self.expert_analyst_prompt = PromptTemplate(
+            input_variables=["context", "question"],
+            template=EXPERT_ANALYST_PROMPT
+        )
+        
+        self.detailed_report_prompt = PromptTemplate(
+            input_variables=["context", "question"],
+            template=EXPERT_ANALYST_PROMPT + ANALYSIS_REPORT_FORMAT
+        )
+        
+        self.executive_summary_prompt = PromptTemplate(
+            input_variables=["context", "filename"],
+            template=EXECUTIVE_SUMMARY_PROMPT
+        )
+        
+        # Legacy prompt for backwards compatibility
         self.financial_analyst_prompt = PromptTemplate(
             input_variables=["context", "question"],
-            template="""You are a senior financial analyst specializing in restaurant partnership agreements and payout reconciliation. Your role is to analyze contracts and financial reports to identify discrepancies, explain variances, and provide detailed financial insights.
-
-ANALYSIS FRAMEWORK:
-1. CONTRACT TERMS: Focus on commission rates, fees, penalties, and payment structures
-2. FINANCIAL RECONCILIATION: Compare actual payouts against contractual expectations
-3. DISCREPANCY IDENTIFICATION: Highlight differences between contracted terms and actual payments
-4. ROOT CAUSE ANALYSIS: Explain why discrepancies occurred (service fees, penalties, bonuses, etc.)
-
-CONTEXT DOCUMENTS:
-{context}
-
-ANALYSIS REQUEST:
-{question}
-
-FINANCIAL ANALYSIS RESPONSE:
-Provide a comprehensive analysis that includes:
-1. **Contract Summary**: Key financial terms from the partnership agreement
-2. **Payout Analysis**: Breakdown of the actual payout amounts and calculations
-3. **Discrepancy Identification**: Specific differences between contract terms and actual payouts
-4. **Financial Explanation**: Detailed reasoning for each discrepancy (cite specific contract clauses)
-5. **Recommendations**: Suggested actions or clarifications needed
-
-Ensure your analysis is:
-- Precise with numbers and percentages
-- Cites specific contract clauses or payout line items
-- Explains the financial impact of each discrepancy
-- Professional and analytical in tone
-
-ANALYSIS:"""
+            template=FINANCIAL_ANALYST_PROMPT_LEGACY
+        )
+        
+        # Simple database query prompt for basic information requests
+        self.simple_database_prompt = PromptTemplate(
+            input_variables=["context", "question"],
+            template=SIMPLE_DATABASE_QUERY_PROMPT
         )
         
         self.partner_documents_cache = {}  # Cache for partner documents
@@ -151,6 +146,48 @@ ANALYSIS:"""
         cleaned_text = re.sub(r' +', ' ', cleaned_text)
         
         return cleaned_text.strip()
+        
+    def _is_simple_database_query(self, question: str) -> bool:
+        """
+        Detect if a question is a simple database query that should use simple response format.
+        
+        Args:
+            question: The user's question
+            
+        Returns:
+            True if it's a simple query, False if it needs complex analysis
+        """
+        question_lower = question.lower().strip()
+        
+        # Keywords indicating simple informational queries
+        simple_query_patterns = [
+            'list', 'names', 'show me', 'what are', 'which', 'how many',
+            'all restaurants', 'all partners', 'all documents',
+            'restaurant names', 'partner names', 'document names',
+            'from db', 'in database', 'available', 'stored'
+        ]
+        
+        # Check if the question contains simple query patterns
+        for pattern in simple_query_patterns:
+            if pattern in question_lower:
+                return True
+                
+        # Complex analysis indicators - if these are present, use financial analysis
+        complex_query_patterns = [
+            'analyze', 'discrepancy', 'compare', 'calculate', 'reconcile',
+            'payout', 'commission', 'fee', 'penalty', 'financial', 'money',
+            'difference', 'variance', 'explanation', 'why', 'how much'
+        ]
+        
+        for pattern in complex_query_patterns:
+            if pattern in question_lower:
+                return False
+                
+        # If question is very short and simple, treat as simple query
+        if len(question_lower.split()) <= 5:
+            return True
+            
+        return False
         
     def load_partner_documents(self, partner_name: str) -> Dict[str, List[Document]]:
         """
@@ -243,23 +280,56 @@ ANALYSIS:"""
         if not all_docs:
             raise ValueError(f"No documents found for partner: {partner_name}")
         
-        # Simple relevance scoring based on keyword overlap
-        # In production, this would use vector similarity search
-        query_keywords = set(query.lower().split())
+        # Enhanced retrieval logic to ensure both document types are included
+        contract_docs = partner_docs.get("contract", [])
+        payout_docs = partner_docs.get("payout_report", [])
+        other_docs = partner_docs.get("other", [])
         
-        scored_docs = []
-        for doc in all_docs:
-            content_keywords = set(doc.page_content.lower().split())
-            score = len(query_keywords.intersection(content_keywords))
-            scored_docs.append((score, doc))
-        
-        # Sort by relevance score and take top documents
-        scored_docs.sort(key=lambda x: x[0], reverse=True)
-        relevant_docs = [doc for score, doc in scored_docs[:max_docs] if score > 0]
-        
-        # If no keyword matches, take the first few documents
-        if not relevant_docs:
-            relevant_docs = all_docs[:max_docs]
+        # If we have both contract and payout documents, ensure representation from both
+        if contract_docs and payout_docs:
+            # Take best contract chunks (up to half of max_docs)
+            contract_limit = max(1, max_docs // 2)
+            payout_limit = max(1, max_docs - contract_limit)
+            
+            # Score contract documents
+            query_keywords = set(query.lower().split())
+            
+            def score_document(doc):
+                content_keywords = set(doc.page_content.lower().split())
+                return len(query_keywords.intersection(content_keywords))
+            
+            # Get top contract chunks
+            contract_scored = [(score_document(doc), doc) for doc in contract_docs]
+            contract_scored.sort(key=lambda x: x[0], reverse=True)
+            selected_contracts = [doc for score, doc in contract_scored[:contract_limit]]
+            
+            # Get top payout chunks
+            payout_scored = [(score_document(doc), doc) for doc in payout_docs]
+            payout_scored.sort(key=lambda x: x[0], reverse=True)
+            selected_payouts = [doc for score, doc in payout_scored[:payout_limit]]
+            
+            # Combine selected documents
+            relevant_docs = selected_contracts + selected_payouts
+            
+            logger.info(f"Multi-document retrieval: {len(selected_contracts)} contract chunks, {len(selected_payouts)} payout chunks")
+            
+        else:
+            # Standard keyword-based scoring for single document type
+            query_keywords = set(query.lower().split())
+            
+            scored_docs = []
+            for doc in all_docs:
+                content_keywords = set(doc.page_content.lower().split())
+                score = len(query_keywords.intersection(content_keywords))
+                scored_docs.append((score, doc))
+            
+            # Sort by relevance score and take top documents
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            relevant_docs = [doc for score, doc in scored_docs[:max_docs] if score > 0]
+            
+            # If no keyword matches, take the first few documents
+            if not relevant_docs:
+                relevant_docs = all_docs[:max_docs]
         
         # Format context
         context_parts = []
@@ -277,13 +347,14 @@ ANALYSIS:"""
         
         return context
     
-    def analyze_contract_discrepancies(self, partner_name: str, specific_question: Optional[str] = None) -> str:
+    def analyze_contract_discrepancies(self, partner_name: str, specific_question: Optional[str] = None, detailed_report: bool = False) -> str:
         """
         Analyze discrepancies between a partner's contract and payout reports.
         
         Args:
             partner_name: Name of the partner to analyze
             specific_question: Optional specific question to focus the analysis
+            detailed_report: If True, use detailed report format
             
         Returns:
             Detailed financial analysis explaining discrepancies
@@ -296,18 +367,8 @@ ANALYSIS:"""
             # Create retrieval context
             context = self.create_retrieval_context(partner_name, specific_question)
             
-            # Generate analysis using the financial analyst prompt
-            response = self.llm.invoke(
-                self.financial_analyst_prompt.format(
-                    context=context,
-                    question=specific_question
-                )
-            )
-            
-            analysis = response.content if hasattr(response, 'content') else str(response)
-            
-            # Clean up any potential streaming artifacts
-            analysis = self._clean_response_text(analysis)
+            # Use the new expert analyst method
+            analysis = self.analyze_with_expert_prompt(context, specific_question, detailed_report)
             
             logger.info(f"Generated discrepancy analysis for partner: {partner_name}")
             return analysis
@@ -419,9 +480,21 @@ ANALYSIS:"""
             
             context = "\n\n".join(context_parts)
             
-            # Generate analysis using the financial analyst prompt
+            # Choose appropriate prompt based on query type
+            is_simple_query = self._is_simple_database_query(question)
+            
+            if is_simple_query:
+                # Use simple database prompt for basic informational queries
+                prompt_to_use = self.simple_database_prompt
+                logger.info(f"Using simple database prompt for query: {question}")
+            else:
+                # Use financial analyst prompt for complex analysis
+                prompt_to_use = self.financial_analyst_prompt
+                logger.info(f"Using financial analyst prompt for query: {question}")
+            
+            # Generate analysis using the appropriate prompt
             response = self.llm.invoke(
-                self.financial_analyst_prompt.format(
+                prompt_to_use.format(
                     context=context,
                     question=question
                 )
@@ -544,7 +617,7 @@ ANALYSIS:"""
             logger.error(f"Error querying partner documents for {partner_name}: {e}")
             raise
 
-    def query_session_documents(self, session_id: str, question: str, max_docs: int = 10) -> str:
+    def query_session_documents(self, session_id: str, question: str, max_docs: int = 10, detailed_report: bool = False) -> str:
         """
         Query documents for a specific session only (newly uploaded documents).
         
@@ -630,9 +703,107 @@ ANALYSIS:"""
             
             context = "\n\n".join(context_parts)
             
-            # Generate analysis using the financial analyst prompt
+            # Use the new expert analyst method
+            analysis = self.analyze_with_expert_prompt(context, question, detailed_report)
+            
+            logger.info(f"Generated session-specific analysis for session {session_id}: {question}")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error querying session documents for {session_id}: {e}")
+            raise
+
+    def generate_executive_summary(self, session_id: str, filename: str) -> str:
+        """
+        Generate an executive summary for a newly uploaded document.
+        
+        Args:
+            session_id: Session ID of the uploaded document
+            filename: Original filename for display purposes
+            
+        Returns:
+            Executive summary of the document
+        """
+        try:
+            logger.info(f"Generating executive summary for: {filename}")
+            
+            # Search for documents matching the specific session ID
+            search_body = {
+                "size": 5,  # Limit to first few chunks for summary
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match": {
+                                    "session_id": session_id
+                                }
+                            }
+                        ]
+                    }
+                },
+                "_source": ["content", "document_type", "partner_name", "chunk_id", "file_name", "session_id"]
+            }
+            
+            response = self.opensearch_service.client.search(
+                index=self.opensearch_service.index_name,
+                body=search_body
+            )
+            
+            if not response["hits"]["hits"]:
+                return f"No content found for {filename}. Please try uploading again."
+            
+            # Combine content from all chunks
+            content_parts = []
+            for hit in response["hits"]["hits"]:
+                source = hit["_source"]
+                content_parts.append(source.get("content", ""))
+            
+            context = "\n\n".join(content_parts)
+            
+            # Generate summary using the executive summary prompt
             response = self.llm.invoke(
-                self.financial_analyst_prompt.format(
+                self.executive_summary_prompt.format(
+                    context=context,
+                    filename=filename
+                )
+            )
+            
+            summary = response.content if hasattr(response, 'content') else str(response)
+            
+            # Clean up any potential streaming artifacts
+            summary = self._clean_response_text(summary)
+            
+            logger.info(f"Generated executive summary for: {filename}")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating executive summary for {filename}: {e}")
+            raise
+
+    def analyze_with_expert_prompt(self, context: str, question: str, detailed_report: bool = False) -> str:
+        """
+        Analyze using the expert analyst prompt with optional detailed report format.
+        
+        Args:
+            context: Document context for analysis
+            question: User's question
+            detailed_report: If True, use detailed report format
+            
+        Returns:
+            Analysis response (concise or detailed based on parameter)
+        """
+        try:
+            # Choose prompt based on detailed_report parameter
+            if detailed_report:
+                prompt_template = self.detailed_report_prompt
+                logger.info("Using detailed report format")
+            else:
+                prompt_template = self.expert_analyst_prompt
+                logger.info("Using concise expert analyst format")
+            
+            # Generate analysis
+            response = self.llm.invoke(
+                prompt_template.format(
                     context=context,
                     question=question
                 )
@@ -643,11 +814,10 @@ ANALYSIS:"""
             # Clean up any potential streaming artifacts
             analysis = self._clean_response_text(analysis)
             
-            logger.info(f"Generated session-specific analysis for session {session_id}: {question}")
             return analysis
             
         except Exception as e:
-            logger.error(f"Error querying session documents for {session_id}: {e}")
+            logger.error(f"Error in expert analysis: {e}")
             raise
 
 

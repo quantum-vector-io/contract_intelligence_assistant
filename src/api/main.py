@@ -55,13 +55,92 @@ async def health_check():
         "version": settings.app_version
     }
 
+async def generate_document_summary(
+    contract_file: UploadFile = None,
+    payout_file: UploadFile = None,
+    filename: str = None
+):
+    """
+    Generate an executive summary for uploaded document(s).
+    """
+    from src.services.document_indexing_service import DocumentIndexingService
+    from src.services.rag_service import FinancialAnalystRAGChain
+    import tempfile
+    import uuid
+    
+    session_id = str(uuid.uuid4())[:8]
+    
+    try:
+        # Initialize services
+        indexing_service = DocumentIndexingService()
+        rag_chain = FinancialAnalystRAGChain()
+        
+        # Process the uploaded file
+        temp_path = None
+        file_to_process = contract_file if contract_file else payout_file
+        
+        if not file_to_process:
+            return {"status": "error", "error": "No file provided"}
+        
+        try:
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix=os.path.splitext(file_to_process.filename or ".pdf")[1]
+            ) as temp_file:
+                content = await file_to_process.read()
+                temp_file.write(content)
+                temp_path = temp_file.name
+            
+            # Index document with metadata
+            metadata = {
+                "partner_name": f"Summary_Session_{session_id}",
+                "document_type": "contract" if contract_file else "payout_report",
+                "partner_id": session_id,
+                "original_filename": file_to_process.filename,
+                "session_id": session_id
+            }
+            
+            result = indexing_service.index_file(temp_path, metadata)
+            
+            if result.get("status") == "success":
+                # Refresh index
+                indexing_service.opensearch_service.client.indices.refresh(index="financial_documents")
+                
+                # Generate summary
+                import time
+                time.sleep(1)
+                
+                summary = rag_chain.generate_executive_summary(session_id, filename or file_to_process.filename)
+                
+                return {
+                    "status": "success",
+                    "summary": summary,
+                    "filename": filename or file_to_process.filename,
+                    "session_id": session_id
+                }
+            else:
+                return {"status": "error", "error": "Failed to index document"}
+                
+        finally:
+            # Clean up temp file
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        logger.error(f"Summary generation failed: {e}")
+        return {"status": "error", "error": str(e)}
+
 # Task 3: Core /analyze endpoint for orchestrating indexing + querying
 @app.post("/analyze")
 async def analyze_documents(
     contract_file: UploadFile = File(None, description="Partnership contract document"),
     payout_file: UploadFile = File(None, description="Payout report document"),
-    question: str = Form(..., description="Question to analyze"),
-    query_database: str = Form("false", description="Whether to query existing database")
+    question: str = Form(None, description="Question to analyze"),
+    query_database: str = Form("false", description="Whether to query existing database"),
+    action: str = Form("analyze", description="Action to perform: 'analyze' or 'summary'"),
+    filename: str = Form(None, description="Original filename for summary generation"),
+    detailed_report: str = Form("false", description="Whether to generate detailed report format")
 ):
     """
     Task 3: Single endpoint to orchestrate the entire analysis process.
@@ -77,9 +156,34 @@ async def analyze_documents(
     import tempfile
     import uuid
     
-    # Convert query_database string to boolean
+    # Convert parameters to booleans
     should_query_database = query_database.lower() == "true"
+    is_detailed_report = detailed_report.lower() == "true"
     logger.info(f"DEBUG: query_database flag: {should_query_database}")
+    logger.info(f"DEBUG: action: {action}")
+    logger.info(f"DEBUG: detailed_report: {is_detailed_report}")
+    
+    # Handle summary generation action
+    if action == "summary":
+        if not filename:
+            raise HTTPException(status_code=400, detail="Filename required for summary generation")
+        
+        # For summary, we need at least one real file
+        has_real_contract = contract_file is not None and contract_file.filename != "dummy_contract.txt"
+        has_real_payout = payout_file is not None and payout_file.filename != "dummy_payout.txt"
+        
+        if not has_real_contract and not has_real_payout:
+            raise HTTPException(status_code=400, detail="No valid files provided for summary generation")
+        
+        return await generate_document_summary(
+            contract_file if has_real_contract else None,
+            payout_file if has_real_payout else None,
+            filename
+        )
+    
+    # For analyze action, question is required
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required for analysis")
     
     # Generate unique partner ID for this analysis session
     session_id = str(uuid.uuid4())[:8]
@@ -246,7 +350,7 @@ async def analyze_documents(
                 if results["contract_indexed"] and results["payout_indexed"]:
                     # Both documents uploaded - always use contract discrepancy analysis
                     logger.info(f"DEBUG: Analyzing discrepancies for partner: {partner_name}")
-                    analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question)
+                    analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question, is_detailed_report)
                 elif should_query_database:
                     # Single document with database query enabled - search across all documents
                     logger.info(f"DEBUG: Using database query analysis (query_database=true)")
@@ -254,7 +358,7 @@ async def analyze_documents(
                 else:
                     # Single document with database query disabled - only analyze uploaded document
                     logger.info(f"DEBUG: Using session-specific query for uploaded document only: {session_id}")
-                    analysis_result = rag_chain.query_session_documents(session_id, question)
+                    analysis_result = rag_chain.query_session_documents(session_id, question, detailed_report=is_detailed_report)
                 
                 results["analysis_successful"] = True
                 results["answer"] = analysis_result
