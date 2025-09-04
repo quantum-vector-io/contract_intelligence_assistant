@@ -164,7 +164,10 @@ if st.button("🔍 Analyze", type="primary"):
                 else:
                     # Prepare files for upload - handle single file case
                     files = {}
-                    data = {'question': query}
+                    data = {
+                        'question': query,
+                        'query_database': str(query_database).lower()  # Send the database query flag
+                    }
                     
                     if contract_file:
                         files['contract_file'] = (contract_file.name, contract_file.getvalue(), contract_file.type)

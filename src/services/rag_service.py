@@ -439,6 +439,217 @@ ANALYSIS:"""
             logger.error(f"Error querying all documents: {e}")
             raise
 
+    def query_partner_documents(self, partner_name: str, question: str, max_docs: int = 10) -> str:
+        """
+        Query documents for a specific partner only.
+        
+        Args:
+            partner_name: Name of the partner to search documents for
+            question: The question to search for
+            max_docs: Maximum number of document chunks to include
+            
+        Returns:
+            AI analysis based on relevant documents from the specific partner only
+        """
+        try:
+            logger.info(f"Querying documents for partner: {partner_name}")
+            
+            # Search for documents matching the specific partner name
+            search_body = {
+                "size": max_docs,
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match": {
+                                    "partner_name": partner_name
+                                }
+                            }
+                        ]
+                    }
+                },
+                "_source": ["content", "document_type", "partner_name", "chunk_id", "file_name"]
+            }
+            
+            response = self.opensearch_service.client.search(
+                index=self.opensearch_service.index_name,
+                body=search_body
+            )
+            
+            # Convert to LangChain documents
+            partner_docs = []
+            for hit in response["hits"]["hits"]:
+                source = hit["_source"]
+                doc = Document(
+                    page_content=source.get("content", ""),
+                    metadata={
+                        "document_type": source.get("document_type", "unknown"),
+                        "partner_name": source.get("partner_name", "unknown"),
+                        "chunk_id": source.get("chunk_id", ""),
+                        "file_name": source.get("file_name", "unknown")
+                    }
+                )
+                partner_docs.append(doc)
+            
+            if not partner_docs:
+                return f"No documents found for partner: {partner_name}. Please upload documents for this partner first."
+            
+            # Simple relevance scoring based on keyword overlap
+            query_keywords = set(question.lower().split())
+            
+            scored_docs = []
+            for doc in partner_docs:
+                content_keywords = set(doc.page_content.lower().split())
+                score = len(query_keywords.intersection(content_keywords))
+                scored_docs.append((score, doc))
+            
+            # Sort by relevance score and take top documents
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            relevant_docs = [doc for score, doc in scored_docs[:max_docs] if score > 0]
+            
+            # If no keyword matches, take some documents anyway
+            if not relevant_docs:
+                relevant_docs = partner_docs[:max_docs]
+            
+            # Format context for analysis
+            context_parts = []
+            for i, doc in enumerate(relevant_docs):
+                doc_type = doc.metadata.get('document_type', 'unknown')
+                file_name = doc.metadata.get('file_name', 'unknown')
+                context_parts.append(
+                    f"DOCUMENT {i+1} ({doc_type.upper()}) - {file_name}:\n"
+                    f"Content: {doc.page_content}\n"
+                    f"---"
+                )
+            
+            context = "\n\n".join(context_parts)
+            
+            # Generate analysis using the financial analyst prompt
+            response = self.llm.invoke(
+                self.financial_analyst_prompt.format(
+                    context=context,
+                    question=question
+                )
+            )
+            
+            analysis = response.content if hasattr(response, 'content') else str(response)
+            
+            # Clean up any potential streaming artifacts
+            analysis = self._clean_response_text(analysis)
+            
+            logger.info(f"Generated partner-specific analysis for {partner_name}: {question}")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error querying partner documents for {partner_name}: {e}")
+            raise
+
+    def query_session_documents(self, session_id: str, question: str, max_docs: int = 10) -> str:
+        """
+        Query documents for a specific session only (newly uploaded documents).
+        
+        Args:
+            session_id: Session ID of the uploaded documents
+            question: The question to search for
+            max_docs: Maximum number of document chunks to include
+            
+        Returns:
+            AI analysis based on relevant documents from the specific session only
+        """
+        try:
+            logger.info(f"Querying documents for session: {session_id}")
+            
+            # Search for documents matching the specific session ID
+            search_body = {
+                "size": max_docs,
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match": {
+                                    "session_id": session_id
+                                }
+                            }
+                        ]
+                    }
+                },
+                "_source": ["content", "document_type", "partner_name", "chunk_id", "file_name", "session_id"]
+            }
+            
+            response = self.opensearch_service.client.search(
+                index=self.opensearch_service.index_name,
+                body=search_body
+            )
+            
+            # Convert to LangChain documents
+            session_docs = []
+            for hit in response["hits"]["hits"]:
+                source = hit["_source"]
+                doc = Document(
+                    page_content=source.get("content", ""),
+                    metadata={
+                        "document_type": source.get("document_type", "unknown"),
+                        "partner_name": source.get("partner_name", "unknown"),
+                        "chunk_id": source.get("chunk_id", ""),
+                        "file_name": source.get("file_name", "unknown"),
+                        "session_id": source.get("session_id", "")
+                    }
+                )
+                session_docs.append(doc)
+            
+            if not session_docs:
+                return f"No documents found for this upload session. Please try uploading the documents again."
+            
+            # Simple relevance scoring based on keyword overlap
+            query_keywords = set(question.lower().split())
+            
+            scored_docs = []
+            for doc in session_docs:
+                content_keywords = set(doc.page_content.lower().split())
+                score = len(query_keywords.intersection(content_keywords))
+                scored_docs.append((score, doc))
+            
+            # Sort by relevance score and take top documents
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            relevant_docs = [doc for score, doc in scored_docs[:max_docs] if score > 0]
+            
+            # If no keyword matches, take all session documents
+            if not relevant_docs:
+                relevant_docs = session_docs[:max_docs]
+            
+            # Format context for analysis - only show uploaded files
+            context_parts = []
+            for i, doc in enumerate(relevant_docs):
+                doc_type = doc.metadata.get('document_type', 'unknown')
+                file_name = doc.metadata.get('file_name', 'unknown')
+                context_parts.append(
+                    f"DOCUMENT {i+1} ({doc_type.upper()}) - {file_name}:\n"
+                    f"Content: {doc.page_content}\n"
+                    f"---"
+                )
+            
+            context = "\n\n".join(context_parts)
+            
+            # Generate analysis using the financial analyst prompt
+            response = self.llm.invoke(
+                self.financial_analyst_prompt.format(
+                    context=context,
+                    question=question
+                )
+            )
+            
+            analysis = response.content if hasattr(response, 'content') else str(response)
+            
+            # Clean up any potential streaming artifacts
+            analysis = self._clean_response_text(analysis)
+            
+            logger.info(f"Generated session-specific analysis for session {session_id}: {question}")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"Error querying session documents for {session_id}: {e}")
+            raise
+
 
 def test_rag_chain():
     """Test the Financial Analyst RAG chain with Sushi Express documents."""

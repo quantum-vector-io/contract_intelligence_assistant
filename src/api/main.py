@@ -60,7 +60,8 @@ async def health_check():
 async def analyze_documents(
     contract_file: UploadFile = File(None, description="Partnership contract document"),
     payout_file: UploadFile = File(None, description="Payout report document"),
-    question: str = Form(..., description="Question to analyze")
+    question: str = Form(..., description="Question to analyze"),
+    query_database: str = Form("false", description="Whether to query existing database")
 ):
     """
     Task 3: Single endpoint to orchestrate the entire analysis process.
@@ -75,6 +76,10 @@ async def analyze_documents(
     from src.services.rag_service import FinancialAnalystRAGChain
     import tempfile
     import uuid
+    
+    # Convert query_database string to boolean
+    should_query_database = query_database.lower() == "true"
+    logger.info(f"DEBUG: query_database flag: {should_query_database}")
     
     # Generate unique partner ID for this analysis session
     session_id = str(uuid.uuid4())[:8]
@@ -237,14 +242,19 @@ async def analyze_documents(
                 time.sleep(1)
                 logger.info("DEBUG: Starting RAG analysis")
                 
-                # If we have both documents, use contract discrepancy analysis
+                # Choose analysis approach based on files and database query flag
                 if results["contract_indexed"] and results["payout_indexed"]:
+                    # Both documents uploaded - always use contract discrepancy analysis
                     logger.info(f"DEBUG: Analyzing discrepancies for partner: {partner_name}")
                     analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question)
-                else:
-                    # If we only have one document, use general query analysis
-                    logger.info("DEBUG: Using general query analysis")
+                elif should_query_database:
+                    # Single document with database query enabled - search across all documents
+                    logger.info(f"DEBUG: Using database query analysis (query_database=true)")
                     analysis_result = rag_chain.query_all_documents(question)
+                else:
+                    # Single document with database query disabled - only analyze uploaded document
+                    logger.info(f"DEBUG: Using session-specific query for uploaded document only: {session_id}")
+                    analysis_result = rag_chain.query_session_documents(session_id, question)
                 
                 results["analysis_successful"] = True
                 results["answer"] = analysis_result
