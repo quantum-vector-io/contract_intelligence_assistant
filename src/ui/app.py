@@ -222,15 +222,6 @@ if st.button("🔍 Analyze", type="primary"):
                                 text = text.replace('#', '\\#')
                                 return text
                             
-                            # Debug: Show what we're actually receiving
-                            with st.expander("🔍 Debug: Raw Response", expanded=False):
-                                st.text("Raw answer from API:")
-                                st.code(repr(answer))
-                                st.text("Character count:")
-                                st.text(f"Length: {len(answer)}")
-                                st.text(f"Newlines: {answer.count(chr(10))}")
-                                st.text(f"Single chars: {sum(1 for line in answer.split(chr(10)) if len(line.strip()) == 1)}")
-                            
                             # Escape LaTeX and display the answer
                             escaped_answer = escape_latex(answer)
                             st.markdown(escaped_answer)
