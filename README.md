@@ -4,7 +4,16 @@
 
 ## 🎯 Overview
 
-A production-ready contract intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
+A production-ready            subgraph "API    subgraph "Data Storage"
+        VOLUME1[💾 OpenSearch Data<br/>Docker Volume]
+        VOLUME2[📁 Uploaded Files<br/>Temporary Storage]
+        LOGS[📄 Application Logs<br/>Container Logs]
+    endes"
+                ROUTE1[🚀 /analyze<br/>Main Workflow]
+                ROUTE2[🔍 /query<br/>Database Search]
+                ROUTE3[📋 /documents/*<br/>File Management]
+                ROUTE4[💼 /financial-analysis/*<br/>RAG Analysis]
+            endact intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
 
 ## ✨ Key Features
 
@@ -19,7 +28,27 @@ A production-ready contract intelligence platform that combines **OpenAI GPT-4**
 🎯 **Executive Summaries** - Auto-generated document summaries on upload  
 📈 **Detailed Reporting** - Structured financial analysis with step-by-step breakdowns
 
-## 📊 Performance
+## �️ Interface Preview
+
+The Contract Intelligence Assistant provides an intuitive web interface for document analysis and contract processing:
+
+### Main Interface
+![Contract Analysis Interface](docs/images/contract_payout_analyz_interface.png)
+*Clean, user-friendly Streamlit interface with document upload, query processing, and real-time analysis capabilities*
+
+### AI Analysis Example
+![AI Analysis Response](docs/images/contract_payout_analyz_ai_answer.png)
+*Detailed AI-powered financial analysis showing contract vs payout discrepancy detection with structured breakdowns*
+
+### Key Interface Features
+- **📁 Document Upload** - Drag-and-drop PDF upload with progress tracking
+- **🤖 Smart Query Processing** - Natural language questions with intelligent response routing
+- **📊 Real-time Analysis** - Live processing status and quality scoring
+- **📋 Session Management** - Persistent document history and query state
+- **🎯 Executive Summaries** - Auto-generated document overviews
+- **💼 Financial Analysis** - Detailed discrepancy detection and reporting
+
+## �📊 Performance
 
 - **Document Processing**: PDF with tables processed in ~15-45 seconds
 - **Query Response**: Simple queries in ~2-5 seconds, complex analysis in 15-45 seconds  
@@ -62,16 +91,7 @@ The system includes comprehensive sample contracts from food delivery partnershi
 - **Table extraction** from PDF financial reports  
 - **Cross-platform partnerships** (UK, DE, NL, CA markets)
 - **Financial discrepancy detection** with detailed breakdowns
-- **Commission structure analysis** across different partnership models  
-📊 **Smart Discrepancy Detection** - Automatic identification of contract vs payout differences  
-🤖 **Intelligent Query Handling** - Automatically detects simple vs complex queries for appropriate responses  
-🔎 **Semantic Search** - Query across all documents using natural language  
-📋 **Multi-Document Analysis** - Simultaneous processing of contracts and payout reports  
-⚡ **Real-time Processing** - Instant analysis of PDF documents with enhanced table parsing  
-🌐 **Modern Web Interface** - User-friendly Streamlit UI with persistent state and auto-summary  
-🐳 **Production Docker Stack** - One-command deployment with full orchestration  
-🎯 **Executive Summaries** - Auto-generated document summaries on upload  
-📈 **Detailed Reporting** - Structured financial analysis with step-by-step breakdowns
+- **Commission structure analysis** across different partnership models
 
 ## 🏗️ Architecture
 
