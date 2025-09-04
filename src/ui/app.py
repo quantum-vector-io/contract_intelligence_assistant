@@ -236,7 +236,6 @@ if ('auto_generate_summary' in st.session_state and st.session_state.auto_genera
 if 'generate_detailed_report' in st.session_state and st.session_state.generate_detailed_report:
     st.session_state.generate_detailed_report = False
     
-    st.info("🔍 Debug: Detailed report generation triggered!")
     st.markdown("### 📊 Generating Detailed Analysis Report...")
     
     with st.spinner("🔄 Creating comprehensive report..."):
