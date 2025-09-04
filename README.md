@@ -4,9 +4,32 @@
 
 ## 🎯 Overview
 
-A production-ready contract intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to p## 📊 Performance
+A production-ready contract intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
 
-- **Document P## 🏭 Production Ready
+## ✨ Key Features
+
+🔍 **Advanced Document Analysis** - AI-powered contract and payout report processing with table extraction  
+📊 **Smart Discrepancy Detection** - Automatic identification of contract vs payout differences  
+🤖 **Intelligent Query Handling** - Automatically detects simple vs complex queries for appropriate responses  
+🔎 **Semantic Search** - Query across all documents using natural language  
+📋 **Multi-Document Analysis** - Simultaneous processing of contracts and payout reports  
+⚡ **Real-time Processing** - Instant analysis of PDF documents with enhanced table parsing  
+🌐 **Modern Web Interface** - User-friendly Streamlit UI with persistent state and auto-summary  
+🐳 **Production Docker Stack** - One-command deployment with full orchestration  
+🎯 **Executive Summaries** - Auto-generated document summaries on upload  
+📈 **Detailed Reporting** - Structured financial analysis with step-by-step breakdowns
+
+## 📊 Performance
+
+- **Document Processing**: PDF with tables processed in ~15-45 seconds
+- **Query Response**: Simple queries in ~2-5 seconds, complex analysis in 15-45 seconds  
+- **Vector Search**: Sub-second semantic search across document chunks
+- **Table Extraction**: Enhanced PDF processing with pdfplumber for financial data
+- **Concurrent Users**: Supports multiple simultaneous analyses and uploads
+- **Analysis Quality**: 100% accuracy score on enhanced table extraction
+- **Memory Usage**: Optimized chunking and embedding for large documents
+
+## 🏭 Production Ready
 
 ✅ **Comprehensive Error Handling** - Robust error handling and structured logging  
 ✅ **Health Monitoring** - Built-in health checks for all services and dependencies  
@@ -17,7 +40,9 @@ A production-ready contract intelligence platform that combines **OpenAI GPT-4**
 ✅ **Smart Query Processing** - Intelligent prompt selection for optimal responses  
 ✅ **Enhanced PDF Processing** - Advanced table extraction with multiple fallback methods  
 ✅ **Persistent UI State** - Session management and user preference persistence  
-✅ **Structured Logging** - Comprehensive logging with debug tools and utilitiesDemo Data
+✅ **Structured Logging** - Comprehensive logging with debug tools and utilities
+
+## 📊 Demo Data
 
 The system includes comprehensive sample contracts from food delivery partnerships:
 
@@ -37,17 +62,7 @@ The system includes comprehensive sample contracts from food delivery partnershi
 - **Table extraction** from PDF financial reports  
 - **Cross-platform partnerships** (UK, DE, NL, CA markets)
 - **Financial discrepancy detection** with detailed breakdowns
-- **Commission structure analysis** across different partnership models*: PDF with tables processed in ~15-45 seconds
-- **Query Response**: Simple queries in ~2-5 seconds, complex analysis in 15-45 seconds  
-- **Vector Search**: Sub-second semantic search across document chunks
-- **Table Extraction**: Enhanced PDF processing with pdfplumber for financial data
-- **Concurrent Users**: Supports multiple simultaneous analyses and uploads
-- **Analysis Quality**: 100% accuracy score on enhanced table extraction
-- **Memory Usage**: Optimized chunking and embedding for large documents automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
-
-## ✨ Key Features
-
-🔍 **Advanced Document Analysis** - AI-powered contract and payout report processing with table extraction  
+- **Commission structure analysis** across different partnership models  
 📊 **Smart Discrepancy Detection** - Automatic identification of contract vs payout differences  
 🤖 **Intelligent Query Handling** - Automatically detects simple vs complex queries for appropriate responses  
 🔎 **Semantic Search** - Query across all documents using natural language  
@@ -604,14 +619,14 @@ COMPOSE_PROJECT_NAME=contract_intelligence_assistant
 ### Docker Environment
 The application automatically configures for Docker networking when deployed via Docker Compose. Internal service communication uses container names (`opensearch`, `contract-intelligence-app`).
 
-## � Performance
+## 📊 Performance
 
 - **Document Processing**: PDF chunks processed in ~10-30 seconds
 - **Query Response**: AI analysis typically completes in 15-45 seconds  
 - **Vector Search**: Sub-second semantic search across documents
 - **Concurrent Users**: Supports multiple simultaneous analyses
 
-## �️ Production Ready
+## 🏭 Production Ready
 
 ✅ **Error Handling** - Comprehensive error handling and logging  
 ✅ **Health Checks** - Built-in health monitoring for all services  
@@ -620,7 +635,7 @@ The application automatically configures for Docker networking when deployed via
 ✅ **Documentation** - API docs available at `/docs`  
 ✅ **Containerization** - Production Docker deployment
 
-## � Deployment Options
+## 🚀 Deployment Options
 
 ### Docker Compose (Recommended)
 ```bash
@@ -633,7 +648,7 @@ Individual service startup for development or custom deployments.
 ### Cloud Deployment
 Ready for deployment on AWS ECS, Azure Container Instances, or any Docker-compatible platform.
 
-## � Demo Data
+## 📊 Demo Data
 
 The system includes sample contracts from food delivery partnerships:
 - **Just Eat UK** - Partnership agreement with commission structures
