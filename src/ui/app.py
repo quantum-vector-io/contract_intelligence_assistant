@@ -41,6 +41,37 @@ except:
     st.sidebar.error("❌ API Not Available")
     st.sidebar.info("Start API: python src/api/main.py")
 
+# Query Options Panel
+st.sidebar.markdown("---")
+st.sidebar.markdown("### ⚙️ Query Options")
+
+# Initialize session state variables
+if 'summary_on_upload' not in st.session_state:
+    st.session_state.summary_on_upload = True
+
+if 'last_question' not in st.session_state:
+    st.session_state.last_question = None
+
+if 'last_context' not in st.session_state:
+    st.session_state.last_context = None
+
+if 'uploaded_files' not in st.session_state:
+    st.session_state.uploaded_files = []
+
+if 'last_session_id' not in st.session_state:
+    st.session_state.last_session_id = None
+
+if 'generate_detailed_report' not in st.session_state:
+    st.session_state.generate_detailed_report = False
+
+# Auto-summary checkbox
+st.session_state.summary_on_upload = st.sidebar.checkbox(
+    'Auto-generate summary on file upload', 
+    value=st.session_state.summary_on_upload,
+    key='summary_checkbox',
+    help="When enabled, automatically generates an executive summary for each uploaded file"
+)
+
 # Main content
 st.markdown("## 📄 Upload Documents")
 
@@ -78,11 +109,243 @@ with col_q2:
         help="Search across all previously uploaded documents"
     )
 
-if st.button("🔍 Analyze", type="primary"):
+# Ask button - right below the input field
+col_ask1, col_ask2 = st.columns([2, 1])
+with col_ask1:
+    ask_button_clicked = st.button("🔍 Ask", type="primary", help="Ask your question and get an analysis")
+with col_ask2:
+    st.write("")  # Empty space
+
+# Manual action buttons
+st.markdown("---")
+col_btn1, col_btn2 = st.columns(2)
+
+with col_btn1:
+    # Generate Summary button - enabled when files are uploaded
+    has_files = contract_file or payout_file
+    generate_summary_disabled = not has_files
+    
+    if st.button(
+        "📋 Generate Summary", 
+        disabled=generate_summary_disabled,
+        help="Generate executive summaries for uploaded documents"
+    ):
+        if has_files:
+            # Store uploaded files info for summary generation
+            summary_files = []
+            if contract_file:
+                summary_files.append(('contract', contract_file))
+            if payout_file:
+                summary_files.append(('payout', payout_file))
+            st.session_state.generate_summary_requested = summary_files
+
+with col_btn2:
+    # Generate Detailed Report button - always enabled (can work with uploaded files or database)
+    detailed_report_disabled = False  # Always enabled
+    
+    if st.button(
+        "📊 Generate Detailed Report", 
+        disabled=detailed_report_disabled,
+        help="Generate a comprehensive analysis report (works with uploaded files or database documents)"
+    ):
+        # Always set the flag when button is clicked, regardless of previous questions
+        st.session_state.generate_detailed_report = True
+        st.success("🔄 Detailed report requested! Processing...")
+
+st.markdown("---")
+
+# Track file uploads and auto-generate summaries if enabled
+current_files = []
+if contract_file:
+    current_files.append(('contract', contract_file))
+if payout_file:
+    current_files.append(('payout', payout_file))
+
+# Check if files have changed and auto-summary is enabled
+if current_files != st.session_state.uploaded_files and st.session_state.summary_on_upload and current_files:
+    st.session_state.uploaded_files = current_files
+    st.session_state.auto_generate_summary = True
+
+# Handle manual summary generation
+if 'generate_summary_requested' in st.session_state and st.session_state.generate_summary_requested:
+    current_files = st.session_state.generate_summary_requested
+    st.session_state.generate_summary_requested = None
+    st.session_state.manual_generate_summary = True
+
+# Generate summaries (auto or manual)
+if ('auto_generate_summary' in st.session_state and st.session_state.auto_generate_summary) or \
+   ('manual_generate_summary' in st.session_state and st.session_state.manual_generate_summary):
+    
+    if 'auto_generate_summary' in st.session_state:
+        st.session_state.auto_generate_summary = False
+        st.markdown("### 🔄 Auto-Generating Document Summaries...")
+    else:
+        st.session_state.manual_generate_summary = False
+        st.markdown("### 📋 Generating Document Summaries...")
+    
+    # Generate summaries for each file
+    for file_type, file_obj in current_files:
+        if file_obj:
+            with st.spinner(f"� Analyzing {file_obj.name}..."):
+                try:
+                    # Upload file and get summary
+                    files = {}
+                    data = {
+                        'action': 'summary',
+                        'filename': file_obj.name
+                    }
+                    
+                    if file_type == 'contract':
+                        files['contract_file'] = (file_obj.name, file_obj.getvalue(), file_obj.type)
+                        files['payout_file'] = ('dummy_payout.txt', b'No payout report provided.', 'text/plain')
+                    else:
+                        files['payout_file'] = (file_obj.name, file_obj.getvalue(), file_obj.type)
+                        files['contract_file'] = ('dummy_contract.txt', b'No contract provided.', 'text/plain')
+                    
+                    response = requests.post(
+                        f"http://localhost:{settings.api_port}/analyze",
+                        files=files,
+                        data=data,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get("status") == "success" and result.get("summary"):
+                            # Display the summary
+                            def escape_latex(text):
+                                text = text.replace('$', '\\$')
+                                text = text.replace('_', '\\_')
+                                text = text.replace('^', '\\^')
+                                text = text.replace('#', '\\#')
+                                return text
+                            
+                            escaped_summary = escape_latex(result.get("summary"))
+                            st.markdown(escaped_summary)
+                        else:
+                            st.error(f"❌ Failed to generate summary for {file_obj.name}")
+                    else:
+                        st.error(f"❌ Server error generating summary for {file_obj.name}")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error generating summary for {file_obj.name}: {str(e)}")
+    
+    st.markdown("---")
+
+# Handle detailed report generation
+if 'generate_detailed_report' in st.session_state and st.session_state.generate_detailed_report:
+    st.session_state.generate_detailed_report = False
+    
+    st.info("🔍 Debug: Detailed report generation triggered!")
+    st.markdown("### 📊 Generating Detailed Analysis Report...")
+    
+    with st.spinner("🔄 Creating comprehensive report..."):
+        try:
+            # Determine what to analyze
+            has_current_files = contract_file or payout_file
+            has_previous_question = st.session_state.last_question
+            
+            if has_current_files:
+                # Use current uploaded files
+                question_to_use = st.session_state.last_question if has_previous_question else "Provide a comprehensive analysis of this document, including key financial terms, potential risks, and recommendations."
+                
+                data = {
+                    'question': question_to_use,
+                    'query_database': str(query_database).lower(),
+                    'detailed_report': 'true'
+                }
+                
+                # Prepare current files
+                files = {}
+                if contract_file:
+                    files['contract_file'] = (contract_file.name, contract_file.getvalue(), contract_file.type)
+                else:
+                    files['contract_file'] = ('dummy_contract.txt', b'No contract provided.', 'text/plain')
+                
+                if payout_file:
+                    files['payout_file'] = (payout_file.name, payout_file.getvalue(), payout_file.type)
+                else:
+                    files['payout_file'] = ('dummy_payout.txt', b'No payout provided.', 'text/plain')
+                    
+            elif has_previous_question and st.session_state.last_context:
+                # Use previous question and context
+                data = {
+                    'question': st.session_state.last_question,
+                    'query_database': str(st.session_state.last_context.get('query_database', False)).lower(),
+                    'detailed_report': 'true'
+                }
+                
+                # Prepare dummy files (will use database query)
+                files = {
+                    'contract_file': ('dummy_contract.txt', b'No contract provided.', 'text/plain'),
+                    'payout_file': ('dummy_payout.txt', b'No payout provided.', 'text/plain')
+                }
+                
+            else:
+                # Default database query for comprehensive analysis
+                data = {
+                    'question': "Provide a comprehensive analysis of all available documents, including key financial terms, potential risks, and recommendations across all partnerships.",
+                    'query_database': 'true',
+                    'detailed_report': 'true'
+                }
+                
+                files = {
+                    'contract_file': ('dummy_contract.txt', b'No contract provided.', 'text/plain'),
+                    'payout_file': ('dummy_payout.txt', b'No payout provided.', 'text/plain')
+                }
+            
+            response = requests.post(
+                f"http://localhost:{settings.api_port}/analyze",
+                files=files,
+                data=data,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("status") == "success" and result.get("analysis_successful"):
+                    # Display the detailed report
+                    def escape_latex(text):
+                        text = text.replace('$', '\\$')
+                        text = text.replace('_', '\\_')
+                        text = text.replace('^', '\\^')
+                        text = text.replace('#', '\\#')
+                        return text
+                    
+                    answer = result.get("answer", "No detailed report generated")
+                    escaped_answer = escape_latex(answer)
+                    st.markdown("### 📋 Detailed Analysis Report")
+                    st.markdown(escaped_answer)
+                else:
+                    st.error("❌ Failed to generate detailed report")
+                    if result.get("error"):
+                        st.error(f"Error details: {result.get('error')}")
+            else:
+                st.error(f"❌ Server error generating detailed report ({response.status_code})")
+                try:
+                    error_detail = response.json().get("detail", "Unknown error")
+                    st.error(f"Details: {error_detail}")
+                except:
+                    st.error("Failed to get error details from server")
+                
+        except Exception as e:
+            st.error(f"❌ Error generating detailed report: {str(e)}")
+    
+    st.markdown("---")
+
+if ask_button_clicked:
     # Check if we have files, database query option, and a question
     has_files = contract_file or payout_file
     
     if (has_files or query_database) and query:
+        # Store the question and context for potential detailed report generation
+        st.session_state.last_question = query
+        st.session_state.last_context = {
+            'query_database': query_database,
+            'has_contract': contract_file is not None,
+            'has_payout': payout_file is not None
+        }
+        
         # Determine analysis type
         if query_database:
             analysis_type = "🔍 Querying existing database"
@@ -164,7 +427,11 @@ if st.button("🔍 Analyze", type="primary"):
                 else:
                     # Prepare files for upload - handle single file case
                     files = {}
-                    data = {'question': query}
+                    data = {
+                        'question': query,
+                        'query_database': str(query_database).lower(),  # Send the database query flag
+                        'detailed_report': 'false'  # Default to concise analysis
+                    }
                     
                     if contract_file:
                         files['contract_file'] = (contract_file.name, contract_file.getvalue(), contract_file.type)
