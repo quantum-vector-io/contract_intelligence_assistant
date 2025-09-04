@@ -9,6 +9,11 @@ from datetime import datetime
 import re
 
 try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None
+
+try:
     import PyPDF2
 except ImportError:
     PyPDF2 = None
@@ -109,28 +114,64 @@ class DocumentProcessor:
         return chunks
     
     def _extract_pdf_text(self, file_path: str) -> str:
-        """Extract text from PDF file."""
-        if PyPDF2 is None:
-            raise ImportError("PyPDF2 is required for PDF processing. Install with: pip install PyPDF2")
+        """
+        Extract text from PDF file using a robust method.
+        First tries pdfplumber, falls back to PyPDF2.
+        """
+        text = ""
         
-        try:
-            with open(file_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
-                text = ""
+        # Try with pdfplumber first for better layout handling
+        if pdfplumber:
+            try:
+                with pdfplumber.open(file_path) as pdf:
+                    for page in pdf.pages:
+                        page_text = page.extract_text(x_tolerance=2, y_tolerance=2)
+                        if page_text:
+                            text += page_text + "\n"
                 
-                for page_num, page in enumerate(pdf_reader.pages):
-                    try:
+                # Post-process to clean up common PDF extraction artifacts
+                text = self._clean_extracted_text(text)
+                
+                if text.strip():
+                    logger.info(f"Successfully extracted text from '{file_path}' using pdfplumber.")
+                    return text
+            except Exception as e:
+                logger.warning(f"pdfplumber failed for '{file_path}': {e}. Falling back to PyPDF2.")
+        
+        # Fallback to PyPDF2 if pdfplumber is not available or fails
+        if PyPDF2:
+            try:
+                with open(file_path, 'rb') as file:
+                    pdf_reader = PyPDF2.PdfReader(file)
+                    for page in pdf_reader.pages:
                         page_text = page.extract_text()
-                        text += page_text + "\n"
-                    except Exception as e:
-                        logger.warning(f"Failed to extract text from page {page_num + 1}: {e}")
-                        continue
+                        if page_text:
+                            text += page_text + "\n"
                 
-                return text
+                text = self._clean_extracted_text(text)
                 
-        except Exception as e:
-            logger.error(f"Failed to extract PDF text from '{file_path}': {e}")
-            raise ValueError(f"Error processing PDF file: {e}")
+                if text.strip():
+                    logger.info(f"Successfully extracted text from '{file_path}' using PyPDF2.")
+                    return text
+            except Exception as e:
+                logger.error(f"PyPDF2 also failed for '{file_path}': {e}")
+        
+        if not text.strip():
+            raise ValueError(f"Failed to extract any text from PDF: {file_path}")
+            
+        return text
+    
+    def _clean_extracted_text(self, text: str) -> str:
+        """Clean up common artifacts from PDF text extraction."""
+        # Replace multiple spaces with a single space
+        text = re.sub(r'\s+', ' ', text)
+        # Remove spaces around punctuation
+        text = re.sub(r'\s([?.!,:;])', r'\1', text)
+        # Add a space after a period if it's followed by a letter (e.g., "end.Start" -> "end. Start")
+        text = re.sub(r'\.([a-zA-Z])', r'. \1', text)
+        # Handle words broken by newlines
+        text = text.replace('-\n', '')
+        return text
     
     def _extract_text_file(self, file_path: str) -> str:
         """Extract text from text file."""

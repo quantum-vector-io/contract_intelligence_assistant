@@ -211,3 +211,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local development summary files
+TASK_*_COMPLETION_SUMMARY.md
+IMPLEMENTATION_SUMMARY.md
+test_*.py
