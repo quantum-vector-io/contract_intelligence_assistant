@@ -120,127 +120,70 @@ class DocumentProcessor:
     
     def _extract_pdf_text(self, file_path: str) -> str:
         """
-        Extract text from PDF file using multiple methods for best results.
-        Uses PyMuPDF first (most reliable), then pdfplumber, then PyPDF2.
+        Extract text from a PDF using pdfplumber's layout-aware text extraction.
+        This method is often better at preserving spaces than other methods.
         """
+        if not pdfplumber:
+            logger.error("pdfplumber is not installed. Cannot process PDF files.")
+            raise ImportError("pdfplumber is required for PDF processing.")
+
         text = ""
-        
-        # Method 1: Try PyMuPDF (most reliable for complex layouts)
-        if fitz:
-            try:
-                doc = fitz.open(file_path)
-                for page_num in range(len(doc)):
-                    page = doc.load_page(page_num)
-                    page_text = page.get_text()
-                    if page_text:
-                        text += page_text + "\n"
-                doc.close()
-                
-                # Apply aggressive text cleaning
-                text = self._clean_extracted_text(text)
-                
-                if text.strip():
-                    logger.info(f"Successfully extracted text from '{file_path}' using PyMuPDF.")
-                    return text
-            except Exception as e:
-                logger.warning(f"PyMuPDF failed for '{file_path}': {e}. Trying pdfplumber.")
-        
-        # Method 2: Try pdfplumber for better layout handling
-        if pdfplumber:
-            try:
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                # Use layout=True to leverage pdfminer.six's layout analysis,
+                # which is better at reconstructing original spacing.
+                # x_tolerance=1 helps distinguish between close-but-separate words.
+                page_texts = [
+                    p.extract_text(layout=True, x_tolerance=1) 
+                    for p in pdf.pages if p.extract_text()
+                ]
+                text = "\n\n".join(page_texts)
+
+            # Apply a light cleaning pass
+            cleaned_text = self._clean_extracted_text(text)
+
+            if cleaned_text.strip():
+                logger.info(f"Successfully extracted text from '{file_path}' using pdfplumber (layout=True).")
+                return cleaned_text
+            else:
+                # If layout=True returns nothing, try without it as a fallback
+                logger.warning(f"Layout-aware extraction for '{file_path}' yielded empty text. Trying basic extraction.")
                 with pdfplumber.open(file_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text(x_tolerance=3, y_tolerance=3)
-                        if page_text:
-                            text += page_text + "\n"
-                
-                # Apply aggressive text cleaning
-                text = self._clean_extracted_text(text)
-                
-                if text.strip():
-                    logger.info(f"Successfully extracted text from '{file_path}' using pdfplumber.")
-                    return text
-            except Exception as e:
-                logger.warning(f"pdfplumber failed for '{file_path}': {e}. Falling back to PyPDF2.")
+                    page_texts = [p.extract_text() for p in pdf.pages if p.extract_text()]
+                    text = "\n\n".join(page_texts)
+                cleaned_text = self._clean_extracted_text(text)
+                if cleaned_text.strip():
+                    return cleaned_text
+                else:
+                    raise ValueError("Extracted text was empty after all processing attempts.")
+
+        except Exception as e:
+            logger.error(f"Failed to extract text from '{file_path}' with pdfplumber: {e}")
+            raise ValueError(f"PDF extraction failed for file: {file_path}")
         
-        # Method 3: Fallback to PyPDF2
-        if PyPDF2:
-            try:
-                with open(file_path, 'rb') as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    for page in pdf_reader.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-                
-                text = self._clean_extracted_text(text)
-                
-                if text.strip():
-                    logger.info(f"Successfully extracted text from '{file_path}' using PyPDF2.")
-                    return text
-            except Exception as e:
-                logger.error(f"PyPDF2 also failed for '{file_path}': {e}")
-        
-        if not text.strip():
-            raise ValueError(f"Failed to extract any text from PDF: {file_path}")
-            
-        return text
-    
+        return ""
+
     def _clean_extracted_text(self, text: str) -> str:
-        """Apply aggressive cleaning to fix PDF extraction artifacts."""
+        """Apply light cleaning, assuming layout and spacing are mostly correct."""
         if not text:
-            return text
-            
-        # Step 1: Handle broken numbers and currencies
-        # Fix patterns like "2,550.00" being split as "2\n,\n550.00"
-        text = re.sub(r'(\d+)\s*,?\s*\n\s*,?\s*(\d+)', r'\1,\2', text)
-        text = re.sub(r'(\d+)\s*\.\s*\n\s*(\d+)', r'\1.\2', text)
-        text = re.sub(r'\$\s*\n\s*(\d)', r'$\1', text)
+            return ""
+
+        # Normalize whitespace: collapse multiple spaces/tabs to one, but preserve newlines
+        text = re.sub(r'[ \t]+', ' ', text)
         
-        # Step 2: Fix broken words that span lines
-        # Remove hyphens at line breaks
-        text = re.sub(r'-\s*\n\s*', '', text)
-        
-        # Fix words broken by newlines without hyphens
-        # Pattern: letter followed by newline followed by lowercase letter
-        text = re.sub(r'([a-z])\s*\n\s*([a-z])', r'\1\2', text)
-        
-        # Step 3: Fix spacing issues
-        # Replace multiple whitespace characters with single space
-        text = re.sub(r'\s+', ' ', text)
-        
-        # Step 4: Fix punctuation spacing
-        # Remove spaces before punctuation
-        text = re.sub(r'\s+([.,:;!?])', r'\1', text)
-        
-        # Add space after punctuation if followed by letter/digit
-        text = re.sub(r'([.,:;!?])([A-Za-z0-9])', r'\1 \2', text)
-        
-        # Step 5: Fix dollar amounts and numbers
-        # Ensure proper spacing around dollar signs
-        text = re.sub(r'\$\s+', '$', text)
-        text = re.sub(r'([a-zA-Z])\$', r'\1 $', text)
-        
-        # Step 6: Fix percentage formatting
-        text = re.sub(r'(\d+)\s*%', r'\1%', text)
-        text = re.sub(r'([a-zA-Z])(\d+%)', r'\1 \2', text)
-        
-        # Step 7: Fix common PDF artifacts
-        # Remove standalone punctuation lines
-        text = re.sub(r'\n\s*[.,;:!?]\s*\n', '\n', text)
-        
-        # Fix broken sentences (capital letter after lowercase without punctuation)
-        text = re.sub(r'([a-z])([A-Z])', r'\1. \2', text)
-        
-        # Step 8: Normalize line breaks
-        # Replace multiple newlines with double newline (paragraph break)
-        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
-        
-        # Step 9: Final cleanup
-        # Remove leading/trailing whitespace from each line
-        lines = [line.strip() for line in text.split('\n')]
-        text = '\n'.join(line for line in lines if line)
-        
+        # Collapse more than two newlines (paragraph breaks) into two
+        text = re.sub(r'\n{3,}', '\n\n', text)
+
+        # Change single newlines that are not part of a paragraph break into spaces
+        text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
+
+        # Correct spacing around punctuation
+        text = re.sub(r'\s+([.,:;!?])', r'\1', text) # remove space before
+        text = re.sub(r'([.,:;!?])([a-zA-Z0-9])', r'\1 \2', text) # add space after
+
+        # Re-run whitespace collapse in case the punctuation rules added extra spaces
+        text = re.sub(r' +', ' ', text)
+
         return text.strip()
     
     def _extract_text_file(self, file_path: str) -> str:
