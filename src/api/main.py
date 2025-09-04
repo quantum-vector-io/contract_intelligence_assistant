@@ -78,7 +78,61 @@ async def analyze_documents(
     
     # Generate unique partner ID for this analysis session
     session_id = str(uuid.uuid4())[:8]
-    partner_name = f"Analysis_Session_{session_id}"
+    
+    # Extract partner name from filenames
+    def extract_partner_name(filename):
+        """Extract partner name from filename."""
+        logger.info(f"DEBUG: Extracting partner name from filename: {filename}")
+        if not filename:
+            logger.info("DEBUG: No filename provided")
+            return None
+        filename_lower = filename.lower()
+        logger.info(f"DEBUG: Filename lowercase: {filename_lower}")
+        if "sushiexpress" in filename_lower or "sushi" in filename_lower:
+            logger.info("DEBUG: Detected Sushi Express")
+            return "Sushi Express 24/7"
+        elif "goldenfork" in filename_lower:
+            logger.info("DEBUG: Detected Golden Fork")
+            return "The Golden Fork Pizzeria"
+        elif "schnitzelhaus" in filename_lower:
+            logger.info("DEBUG: Detected SchnitzelHaus")
+            return "SchnitzelHaus"
+        elif "urbanspice" in filename_lower:
+            logger.info("DEBUG: Detected Urban Spice")
+            return "Urban Spice Group"
+        logger.info("DEBUG: No partner detected")
+        return None
+    
+    def get_partner_id(partner_name):
+        """Get partner ID from partner name."""
+        if partner_name == "Sushi Express 24/7":
+            return "sushi_express_247"
+        elif partner_name == "The Golden Fork Pizzeria":
+            return "golden_fork_pizzeria"
+        elif partner_name == "SchnitzelHaus":
+            return "schnitzel_haus"
+        elif partner_name == "Urban Spice Group":
+            return "urban_spice_group"
+        return session_id  # Fallback to session ID
+    
+    # Try to extract partner name from either file
+    partner_name = None
+    if contract_file and contract_file.filename:
+        logger.info(f"DEBUG: Trying to extract partner from contract file: {contract_file.filename}")
+        partner_name = extract_partner_name(contract_file.filename)
+    if not partner_name and payout_file and payout_file.filename:
+        logger.info(f"DEBUG: Trying to extract partner from payout file: {payout_file.filename}")
+        partner_name = extract_partner_name(payout_file.filename)
+    
+    logger.info(f"DEBUG: Final partner_name: {partner_name}")
+    
+    # Fallback to session-based name if no partner detected
+    if not partner_name:
+        partner_name = f"Analysis_Session_{session_id}"
+        logger.info(f"DEBUG: Using fallback partner name: {partner_name}")
+    
+    partner_id = get_partner_id(partner_name)
+    logger.info(f"DEBUG: Final partner_id: {partner_id}")
     
     try:
         # Initialize services
@@ -121,7 +175,7 @@ async def analyze_documents(
                 contract_metadata = {
                     "partner_name": partner_name,
                     "document_type": "contract",
-                    "partner_id": session_id,
+                    "partner_id": partner_id,
                     "original_filename": contract_file.filename,
                     "session_id": session_id
                 }
@@ -154,7 +208,7 @@ async def analyze_documents(
                 payout_metadata = {
                     "partner_name": partner_name,
                     "document_type": "payout_report",
-                    "partner_id": session_id,
+                    "partner_id": partner_id,
                     "original_filename": payout_file.filename,
                     "session_id": session_id
                 }
@@ -174,11 +228,22 @@ async def analyze_documents(
         # Perform RAG analysis if at least one document was indexed successfully
         if results["contract_indexed"] or results["payout_indexed"]:
             try:
+                # Refresh the index to ensure documents are immediately searchable
+                indexing_service.opensearch_service.client.indices.refresh(index="financial_documents")
+                logger.info("DEBUG: Index refreshed for immediate search")
+                
+                # Add a small delay to ensure indexing is complete
+                import time
+                time.sleep(1)
+                logger.info("DEBUG: Starting RAG analysis")
+                
                 # If we have both documents, use contract discrepancy analysis
                 if results["contract_indexed"] and results["payout_indexed"]:
+                    logger.info(f"DEBUG: Analyzing discrepancies for partner: {partner_name}")
                     analysis_result = rag_chain.analyze_contract_discrepancies(partner_name, question)
                 else:
                     # If we only have one document, use general query analysis
+                    logger.info("DEBUG: Using general query analysis")
                     analysis_result = rag_chain.query_all_documents(question)
                 
                 results["analysis_successful"] = True

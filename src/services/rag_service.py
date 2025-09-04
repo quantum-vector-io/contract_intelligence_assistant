@@ -97,20 +97,25 @@ ANALYSIS:"""
         
         # Search for documents by partner name in OpenSearch
         try:
+            logger.info(f"DEBUG: Searching for documents with partner_name: '{partner_name}'")
             search_body = {
                 "size": 100,  # Increase to get all chunks
                 "query": {
-                    "term": {
+                    "match": {
                         "partner_name": partner_name
                     }
                 },
                 "_source": ["content", "document_type", "partner_name", "chunk_id"]
             }
             
+            logger.info(f"DEBUG: Search query: {search_body}")
             response = self.opensearch_service.client.search(
                 index=self.opensearch_service.index_name,
                 body=search_body
             )
+            
+            total_hits = response["hits"]["total"]["value"]
+            logger.info(f"DEBUG: Found {total_hits} documents in OpenSearch")
             
             partner_docs = {"contract": [], "payout_report": [], "other": []}
             
