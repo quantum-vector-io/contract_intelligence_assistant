@@ -60,43 +60,236 @@ The system includes comprehensive sample contracts from food delivery partnershi
 
 ## 🏗️ Architecture
 
-### High-Level System Design
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Streamlit UI  │    │   FastAPI Core   │    │   OpenSearch    │
-│                 │◄──►│                  │◄──►│   Vector DB     │
-│ • File Upload   │    │ • RAG Pipeline   │    │ • Embeddings    │
-│ • Chat Interface│    │ • LangChain      │    │ • Similarity    │
-│ • Database Query│    │ • OpenAI API     │    │   Search        │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │   Document       │
-                       │   Processing     │
-                       │ • PDF Parse      │
-                       │ • Chunking       │
-                       │ • Embedding      │
-                       └──────────────────┘
-```
-
-### Docker Stack Deployment
-```
-┌─────────────────────────────────────────────────┐
-│                 Docker Stack                   │
-├─────────────────────────────────────────────────┤
-│  📱 Streamlit UI (8501)                        │
-│  🔗 FastAPI Backend (8000)                     │
-│  🔍 OpenSearch Engine (9200)                   │
-│  📊 OpenSearch Dashboard (5601)                │
-└─────────────────────────────────────────────────┘
+### System Overview - Data Flow
+```mermaid
+graph TB
+    UI[🌐 Streamlit UI<br/>Port 8501] -->|File Upload & Queries| API[🔗 FastAPI Backend<br/>Port 8000]
+    API -->|Document Processing| DOC[📄 Document Service<br/>PDF + Table Extraction]
+    DOC -->|Text Chunks| EMB[🤖 Embedding Service<br/>OpenAI ada-002]
+    EMB -->|Vector Embeddings| OS[🔍 OpenSearch<br/>Vector Database<br/>Port 9200]
+    
+    API -->|User Query| RAG[🧠 RAG Service<br/>LangChain Pipeline]
+    RAG -->|Semantic Search| OS
+    OS -->|Relevant Context| RAG
+    RAG -->|Enhanced Prompt| GPT[🤖 GPT-4<br/>Analysis Engine]
+    GPT -->|AI Response| RAG
+    RAG -->|Formatted Analysis| API
+    API -->|JSON Response| UI
+    
+    OS -->|Health Check| DASH[📊 OpenSearch Dashboard<br/>Port 5601]
+    
+    style UI fill:#e1f5fe
+    style API fill:#f3e5f5
+    style OS fill:#e8f5e8
+    style GPT fill:#fff3e0
 ```
 
-### RAG Pipeline Flow
+### RAG Pipeline - Detailed Processing Flow
+```mermaid
+flowchart TD
+    %% RAG Pipeline Detailed Flow
+    START([🚀 User Uploads Documents<br/>+ Asks Question])
+    
+    %% Document Processing Pipeline
+    subgraph "Document Processing Pipeline"
+        PDF[📄 PDF/TXT Files]
+        EXTRACT[🔧 Text Extraction<br/>pdfplumber + layout-aware]
+        CLEAN[🧽 Text Cleaning<br/>Remove artifacts, normalize]
+        SPLIT[✂️ Text Chunking<br/>RecursiveCharacterTextSplitter<br/>1000 chars, 200 overlap]
+        EMBED[🧠 Generate Embeddings<br/>OpenAI ada-002<br/>1536 dimensions]
+        INDEX[📚 Index in OpenSearch<br/>Store vectors + metadata]
+    end
+    
+    %% Query Processing Pipeline
+    subgraph "Query Processing Pipeline"
+        QUESTION[❓ User Question]
+        SEARCH[🔍 Semantic Search<br/>Cosine similarity on vectors]
+        RETRIEVE[📖 Retrieve Context<br/>Top-K relevant chunks]
+        PROMPT[📝 Build Analyst Prompt<br/>Context + Question + Instructions]
+        LLM[🤖 GPT-4 Analysis<br/>Financial Analyst RAG Chain]
+        RESPONSE[💬 Structured Response<br/>Contract analysis + discrepancies]
+    end
+    
+    %% Data Stores
+    OPENSEARCH_DB[(🗄️ OpenSearch Database<br/>• Vector embeddings<br/>• Document metadata<br/>• Search indexes)]
+    
+    %% External Services
+    OPENAI_API[🔮 OpenAI API<br/>• Embeddings Model<br/>• GPT-4 Model]
+    
+    %% Flow Connections
+    START --> PDF
+    PDF --> EXTRACT
+    EXTRACT --> CLEAN
+    CLEAN --> SPLIT
+    SPLIT --> EMBED
+    EMBED <--> OPENAI_API
+    EMBED --> INDEX
+    INDEX --> OPENSEARCH_DB
+    
+    START --> QUESTION
+    QUESTION --> SEARCH
+    SEARCH <--> OPENSEARCH_DB
+    SEARCH --> RETRIEVE
+    RETRIEVE --> PROMPT
+    PROMPT --> LLM
+    LLM <--> OPENAI_API
+    LLM --> RESPONSE
+    
+    %% Metadata Flow
+    subgraph "Metadata Enrichment"
+        PARTNER_ID[🏷️ Partner Identification<br/>Extract from filename]
+        DOC_TYPE[📋 Document Classification<br/>Contract vs Payout Report]
+        TEMPORAL[⏰ Temporal Metadata<br/>Processing timestamps]
+    end
+    
+    SPLIT --> PARTNER_ID
+    SPLIT --> DOC_TYPE
+    SPLIT --> TEMPORAL
+    PARTNER_ID --> INDEX
+    DOC_TYPE --> INDEX
+    TEMPORAL --> INDEX
+    
+    %% Advanced Features
+    subgraph "Advanced RAG Features"
+        HYBRID[🔀 Hybrid Search<br/>Vector + Text search combination]
+        CACHE[💾 Partner Document Cache<br/>Optimize repeated queries]
+        FILTER[🎯 Context Filtering<br/>Partner-specific retrieval]
+    end
+    
+    SEARCH --> HYBRID
+    RETRIEVE --> CACHE
+    RETRIEVE --> FILTER
+    
+    %% Response Processing
+    subgraph "Response Enhancement"
+        ARTIFACT_CLEAN[🧹 Artifact Removal<br/>Clean streaming artifacts]
+        STRUCTURE[📐 Structure Analysis<br/>Format financial insights]
+        VALIDATE[✅ Response Validation<br/>Ensure completeness]
+    end
+    
+    RESPONSE --> ARTIFACT_CLEAN
+    ARTIFACT_CLEAN --> STRUCTURE
+    STRUCTURE --> VALIDATE
+    
+    FINAL([✨ Delivered to User<br/>Comprehensive Financial Analysis])
+    VALIDATE --> FINAL
+    
+    %% Styling
+    classDef processStyle fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
+    classDef dataStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef externalStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef enhanceStyle fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    
+    class EXTRACT,CLEAN,SPLIT,EMBED,INDEX,SEARCH,RETRIEVE,PROMPT,LLM processStyle
+    class OPENSEARCH_DB,PARTNER_ID,DOC_TYPE,TEMPORAL dataStyle
+    class OPENAI_API externalStyle
+    class HYBRID,CACHE,FILTER,ARTIFACT_CLEAN,STRUCTURE,VALIDATE enhanceStyle
 ```
-Document Upload → PDF Processing → Text Chunking → OpenAI Embeddings → 
-OpenSearch Storage → User Query → Semantic Search → Context Retrieval → 
-GPT-4 Analysis → Response Generation
+
+### Container Deployment Architecture
+```mermaid
+graph TB
+    %% Container Architecture
+    subgraph "Docker Compose Stack"
+        subgraph "Frontend Container"
+            STREAMLIT[🖥️ Streamlit UI<br/>Port 8501<br/>Python Dashboard]
+        end
+        
+        subgraph "Backend Container"
+            FASTAPI[🔗 FastAPI Server<br/>Port 8000<br/>Async Python API]
+            
+            subgraph "Service Layer"
+                DOC_SVC[📋 Document Service<br/>PDF Processing]
+                EMB_SVC[🧠 Embedding Service<br/>OpenAI Integration]
+                RAG_SVC[🤖 RAG Service<br/>LangChain Pipeline]
+                OS_SVC[🔍 OpenSearch Service<br/>Vector Operations]
+            end
+            
+            subgraph "API Routes"
+                ROUTE1[� /analyze<br/>Main Workflow]
+                ROUTE2[🔍 /query<br/>Database Search]
+                ROUTE3[📋 /documents/*<br/>File Management]
+                ROUTE4[💼 /financial-analysis/*<br/>RAG Analysis]
+            end
+        end
+        
+        subgraph "Database Container"
+            OPENSEARCH[📊 OpenSearch Engine<br/>Port 9200<br/>Vector Database]
+            DASHBOARD[📈 OpenSearch Dashboards<br/>Port 5601<br/>Admin Interface]
+        end
+    end
+    
+    %% External Services
+    subgraph "External APIs"
+        OPENAI_EXT[🔮 OpenAI API<br/>GPT-4 + Embeddings<br/>External Service]
+    end
+    
+    %% Data Persistence
+    subgraph "Data Storage"
+        VOLUME1[💾 OpenSearch Data<br/>Docker Volume]
+        VOLUME2[📁 Uploaded Files<br/>Temporary Storage]
+        LOGS[� Application Logs<br/>Container Logs]
+    end
+    
+    %% Network Flow
+    USER[👤 User]
+    USER --> STREAMLIT
+    STREAMLIT <--> FASTAPI
+    FASTAPI --> DOC_SVC
+    FASTAPI --> EMB_SVC
+    FASTAPI --> RAG_SVC
+    FASTAPI --> OS_SVC
+    
+    DOC_SVC --> VOLUME2
+    EMB_SVC <--> OPENAI_EXT
+    RAG_SVC <--> OPENAI_EXT
+    OS_SVC <--> OPENSEARCH
+    OPENSEARCH --> VOLUME1
+    
+    FASTAPI --> ROUTE1
+    FASTAPI --> ROUTE2
+    FASTAPI --> ROUTE3
+    FASTAPI --> ROUTE4
+    
+    %% Monitoring & Health
+    subgraph "Monitoring"
+        HEALTH[💚 Health Checks<br/>System Status]
+        METRICS[📊 Performance Metrics<br/>Response Times]
+    end
+    
+    FASTAPI --> HEALTH
+    OPENSEARCH --> HEALTH
+    STREAMLIT --> METRICS
+    FASTAPI --> METRICS
+    
+    %% Configuration
+    subgraph "Configuration"
+        ENV[⚙️ Environment Variables<br/>.env Configuration]
+        CONFIG[📋 Application Settings<br/>Pydantic Settings]
+    end
+    
+    ENV --> CONFIG
+    CONFIG --> FASTAPI
+    CONFIG --> STREAMLIT
+    
+    %% Development vs Production
+    subgraph "Deployment Modes"
+        DEV[🔧 Development Mode<br/>Local Docker Compose]
+        PROD[🚀 Production Mode<br/>Cloud Container Platform]
+    end
+    
+    %% Styling
+    classDef containerStyle fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    classDef serviceStyle fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef dataStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef externalStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef configStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    class STREAMLIT,FASTAPI,OPENSEARCH containerStyle
+    class DOC_SVC,EMB_SVC,RAG_SVC,OS_SVC,ROUTE1,ROUTE2,ROUTE3,ROUTE4 serviceStyle
+    class VOLUME1,VOLUME2,LOGS,HEALTH,METRICS dataStyle
+    class OPENAI_EXT externalStyle
+    class ENV,CONFIG,DEV,PROD configStyle
 ```
 
 ### Technology Stack
