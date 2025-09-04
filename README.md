@@ -92,7 +92,9 @@ export OPENAI_API_KEY=your_actual_api_key_here
 docker-compose up -d
 ```
 
-### Manual Setup (Development)
+### Manual Setup (Development Only)
+
+> **Note**: This approach runs OpenSearch in Docker but the application locally. For production or simple deployment, use the Docker Compose option above.
 
 ```bash
 # Clone and setup
@@ -109,13 +111,16 @@ venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Start OpenSearch services only
+# Create .env file with your OpenAI API key
+echo "OPENAI_API_KEY=your_actual_api_key_here" > .env
+
+# Start OpenSearch services only (for local development)
 docker-compose up -d opensearch opensearch-dashboards
 
-# Start backend
+# Start backend (in virtual environment)
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
-# Start frontend (in another terminal)
+# Start frontend (in another terminal, with venv activated)
 streamlit run src/ui/app.py
 ```
 

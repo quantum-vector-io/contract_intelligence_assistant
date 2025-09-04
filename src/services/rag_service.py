@@ -37,7 +37,8 @@ class FinancialAnalystRAGChain:
         self.llm = ChatOpenAI(
             model_name="gpt-4",  # Use GPT-4 for better analytical capabilities
             temperature=0.1,     # Low temperature for consistent analysis
-            openai_api_key=settings.openai_api_key
+            openai_api_key=settings.openai_api_key,
+            streaming=False      # Explicitly disable streaming to prevent character separation
         )
         
         self.embeddings = OpenAIEmbeddings(
@@ -81,6 +82,76 @@ ANALYSIS:"""
         
         self.partner_documents_cache = {}  # Cache for partner documents
         
+    def _clean_response_text(self, text: str) -> str:
+        """
+        Clean up potential streaming artifacts in AI responses.
+        
+        Args:
+            text: Raw AI response text
+            
+        Returns:
+            Cleaned text without streaming artifacts
+        """
+        import re
+        
+        # Remove single character lines (streaming artifacts)
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            
+            # Skip single character lines that are likely streaming artifacts
+            if len(line) == 1 and line.isalnum():
+                # Check if this single character should be part of the previous line
+                if cleaned_lines and not cleaned_lines[-1].endswith(('.', '!', '?', ':')):
+                    cleaned_lines[-1] += line
+                continue
+            
+            # Skip empty lines between single characters
+            if not line and i > 0 and i < len(lines) - 1:
+                prev_line = lines[i-1].strip()
+                next_line = lines[i+1].strip()
+                if len(prev_line) == 1 and len(next_line) == 1:
+                    continue
+            
+            cleaned_lines.append(line)
+        
+        # Join lines and fix common streaming artifacts
+        cleaned_text = '\n'.join(cleaned_lines)
+        
+        # Fix separated numbers and currency (e.g., "2\n,\n925.00" -> "2,925.00")
+        cleaned_text = re.sub(r'(\d+)\s*\n\s*,\s*\n\s*(\d+)', r'\1,\2', cleaned_text)
+        
+        # Fix separated decimals (e.g., "925\n.\n00" -> "925.00")
+        cleaned_text = re.sub(r'(\d+)\s*\n\s*\.\s*\n\s*(\d+)', r'\1.\2', cleaned_text)
+        
+        # Fix separated words ONLY if they are clearly streaming artifacts
+        # Only fix single characters separated by newlines in specific patterns
+        # Be much more conservative to avoid joining legitimate word boundaries
+        
+        # Fix obvious streaming artifacts like "w\ni\nt\nh" -> "with" but ONLY for very specific cases
+        # Look for patterns where single characters are separated by newlines AND form common words
+        streaming_patterns = [
+            (r'\bw\s*\n\s*i\s*\n\s*t\s*\n\s*h\b', 'with'),
+            (r'\bf\s*\n\s*r\s*\n\s*o\s*\n\s*m\b', 'from'),
+            (r'\bt\s*\n\s*h\s*\n\s*e\s*\n\s*r\s*\n\s*e\b', 'there'),
+            (r'\bt\s*\n\s*h\s*\n\s*a\s*\n\s*t\b', 'that'),
+            (r'\bt\s*\n\s*h\s*\n\s*i\s*\n\s*s\b', 'this'),
+        ]
+        
+        for pattern, replacement in streaming_patterns:
+            cleaned_text = re.sub(pattern, replacement, cleaned_text, flags=re.IGNORECASE)
+        
+        # DO NOT use the overly aggressive patterns that join any two characters
+        # The old patterns were causing legitimate words to be joined incorrectly
+        
+        # Remove excessive whitespace
+        cleaned_text = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_text)
+        cleaned_text = re.sub(r' +', ' ', cleaned_text)
+        
+        return cleaned_text.strip()
+        
     def load_partner_documents(self, partner_name: str) -> Dict[str, List[Document]]:
         """
         Load all documents for a specific partner from OpenSearch index.
@@ -97,20 +168,25 @@ ANALYSIS:"""
         
         # Search for documents by partner name in OpenSearch
         try:
+            logger.info(f"DEBUG: Searching for documents with partner_name: '{partner_name}'")
             search_body = {
                 "size": 100,  # Increase to get all chunks
                 "query": {
-                    "term": {
+                    "match": {
                         "partner_name": partner_name
                     }
                 },
                 "_source": ["content", "document_type", "partner_name", "chunk_id"]
             }
             
+            logger.info(f"DEBUG: Search query: {search_body}")
             response = self.opensearch_service.client.search(
                 index=self.opensearch_service.index_name,
                 body=search_body
             )
+            
+            total_hits = response["hits"]["total"]["value"]
+            logger.info(f"DEBUG: Found {total_hits} documents in OpenSearch")
             
             partner_docs = {"contract": [], "payout_report": [], "other": []}
             
@@ -229,6 +305,9 @@ ANALYSIS:"""
             )
             
             analysis = response.content if hasattr(response, 'content') else str(response)
+            
+            # Clean up any potential streaming artifacts
+            analysis = self._clean_response_text(analysis)
             
             logger.info(f"Generated discrepancy analysis for partner: {partner_name}")
             return analysis
@@ -349,6 +428,9 @@ ANALYSIS:"""
             )
             
             analysis = response.content if hasattr(response, 'content') else str(response)
+            
+            # Clean up any potential streaming artifacts
+            analysis = self._clean_response_text(analysis)
             
             logger.info(f"Generated database query analysis for: {question}")
             return analysis

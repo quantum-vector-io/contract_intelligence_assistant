@@ -140,7 +140,18 @@ if st.button("🔍 Analyze", type="primary"):
                                 st.markdown("**Your Question:**")
                                 st.info(query)
                                 st.markdown("**AI Response:**")
-                                st.markdown(ai_response)
+                                
+                                # Escape LaTeX characters to prevent math rendering
+                                def escape_latex(text):
+                                    """Escape LaTeX special characters to prevent unwanted math rendering."""
+                                    text = text.replace('$', '\\$')
+                                    text = text.replace('_', '\\_')
+                                    text = text.replace('^', '\\^')
+                                    text = text.replace('#', '\\#')
+                                    return text
+                                
+                                escaped_response = escape_latex(ai_response)
+                                st.markdown(escaped_response)
                             
                         else:
                             st.error(f"❌ Query failed ({response.status_code})")
@@ -200,7 +211,29 @@ if st.button("🔍 Analyze", type="primary"):
                             st.markdown("**AI Response:**")
                             # Display the answer in a nice format
                             answer = result.get("answer", "No answer provided")
-                            st.markdown(answer)
+                            
+                            # Escape LaTeX characters to prevent Streamlit from interpreting $ as math delimiters
+                            def escape_latex(text):
+                                """Escape LaTeX special characters to prevent unwanted math rendering."""
+                                # Escape dollar signs and other LaTeX special characters
+                                text = text.replace('$', '\\$')
+                                text = text.replace('_', '\\_')
+                                text = text.replace('^', '\\^')
+                                text = text.replace('#', '\\#')
+                                return text
+                            
+                            # Debug: Show what we're actually receiving
+                            with st.expander("🔍 Debug: Raw Response", expanded=False):
+                                st.text("Raw answer from API:")
+                                st.code(repr(answer))
+                                st.text("Character count:")
+                                st.text(f"Length: {len(answer)}")
+                                st.text(f"Newlines: {answer.count(chr(10))}")
+                                st.text(f"Single chars: {sum(1 for line in answer.split(chr(10)) if len(line.strip()) == 1)}")
+                            
+                            # Escape LaTeX and display the answer
+                            escaped_answer = escape_latex(answer)
+                            st.markdown(escaped_answer)
                             
                             # Show session info
                             st.markdown("---")
