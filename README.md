@@ -394,6 +394,7 @@ cp .env.template .env
 docker-compose up -d opensearch opensearch-dashboards
 
 # Start backend (in virtual environment)
+# .\venv\Scripts\python.exe -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Start frontend (in another terminal, with venv activated)
@@ -775,5 +776,6 @@ This is a demonstration project showcasing production-ready AI application devel
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
+
 
 **🎯 Ready for production • 🐳 Docker enabled • 🤖 AI powered**
