@@ -237,10 +237,13 @@ async def clear_index() -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/test-embedding")
+@router.get("/health/embedding")
 async def test_embedding_service() -> Dict[str, Any]:
     """
-    Test the embedding service connection.
+    Health check for the embedding service connection.
+    
+    Tests connectivity to OpenAI's embedding API and validates
+    that the service is operational for document processing.
     """
     try:
         connection_ok = indexing_service.embedding_service.test_connection()
@@ -258,7 +261,7 @@ async def test_embedding_service() -> Dict[str, Any]:
             }
             
     except Exception as e:
-        logger.error(f"Embedding service test failed: {e}")
+        logger.error(f"Embedding service health check failed: {e}")
         return {
             "status": "error",
             "message": str(e)
