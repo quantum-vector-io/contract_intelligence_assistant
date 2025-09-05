@@ -6,6 +6,10 @@
 
 A production-ready contract intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
 
+### 🎯 Project Purpose
+
+This project was developed as a high-fidelity prototype to demonstrate a strategic solution for the challenges outlined in the Senior Python Developer (GenAI) role. Its primary purpose is to showcase a product-oriented mindset, architectural thinking, and rapid development capabilities in response to the specific business context of the client.
+
 ## ✨ Key Features
 
 🔍 **Advanced Document Analysis** - AI-powered contract and payout report processing with table extraction  
