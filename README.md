@@ -28,7 +28,7 @@ A production-ready            subgraph "API    subgraph "Data Storage"
 🎯 **Executive Summaries** - Auto-generated document summaries on upload  
 📈 **Detailed Reporting** - Structured financial analysis with step-by-step breakdowns
 
-## �️ Interface Preview
+## 🖥️ Interface Preview
 
 The Contract Intelligence Assistant provides an intuitive web interface for document analysis and contract processing:
 
@@ -48,7 +48,7 @@ The Contract Intelligence Assistant provides an intuitive web interface for docu
 - **🎯 Executive Summaries** - Auto-generated document overviews
 - **💼 Financial Analysis** - Detailed discrepancy detection and reporting
 
-## �📊 Performance
+## 📊 Performance
 
 - **Document Processing**: PDF with tables processed in ~15-45 seconds
 - **Query Response**: Simple queries in ~2-5 seconds, complex analysis in 15-45 seconds  
@@ -241,7 +241,7 @@ graph TB
             end
             
             subgraph "API Routes"
-                ROUTE1[� /analyze<br/>Main Workflow]
+                ROUTE1[🚀 /analyze<br/>Main Workflow]
                 ROUTE2[🔍 /query<br/>Database Search]
                 ROUTE3[📋 /documents/*<br/>File Management]
                 ROUTE4[💼 /financial-analysis/*<br/>RAG Analysis]
@@ -263,7 +263,7 @@ graph TB
     subgraph "Data Storage"
         VOLUME1[💾 OpenSearch Data<br/>Docker Volume]
         VOLUME2[📁 Uploaded Files<br/>Temporary Storage]
-        LOGS[� Application Logs<br/>Container Logs]
+        LOGS[📄 Application Logs<br/>Container Logs]
     end
     
     %% Network Flow
