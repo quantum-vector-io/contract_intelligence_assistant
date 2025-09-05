@@ -4,16 +4,7 @@
 
 ## 🎯 Overview
 
-A production-ready            subgraph "API    subgraph "Data Storage"
-        VOLUME1[💾 OpenSearch Data<br/>Docker Volume]
-        VOLUME2[📁 Uploaded Files<br/>Temporary Storage]
-        LOGS[📄 Application Logs<br/>Container Logs]
-    endes"
-                ROUTE1[🚀 /analyze<br/>Main Workflow]
-                ROUTE2[🔍 /query<br/>Database Search]
-                ROUTE3[📋 /documents/*<br/>File Management]
-                ROUTE4[💼 /financial-analysis/*<br/>RAG Analysis]
-            endact intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
+A production-ready contract intelligence platform that combines **OpenAI GPT-4**, **OpenSearch vector database**, and **LangChain RAG pipeline** to provide automated analysis of partnership agreements and payout reports. Built for financial teams who need to quickly identify discrepancies and extract insights from large document volumes.
 
 ## ✨ Key Features
 
@@ -28,7 +19,7 @@ A production-ready            subgraph "API    subgraph "Data Storage"
 🎯 **Executive Summaries** - Auto-generated document summaries on upload  
 📈 **Detailed Reporting** - Structured financial analysis with step-by-step breakdowns
 
-## 🖥️ Interface Preview
+## 🖼️ Interface Preview
 
 The Contract Intelligence Assistant provides an intuitive web interface for document analysis and contract processing:
 
