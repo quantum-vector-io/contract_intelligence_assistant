@@ -696,7 +696,7 @@ quadrantChart
     "Kira Systems, LawGeex": [0.4, 0.7]
     "AppZen, MindBridge Ai": [0.7, 0.2]
     "DataSnipper": [0.5, 0.1]
-    "Our Product: Contract Intelligence Assistant": [0.9, 0.9]
+    "Contract Intelligence AI Platform": [0.9, 0.9]
 ```
 
 ### 1. The Dynamic Obligation Ledger
