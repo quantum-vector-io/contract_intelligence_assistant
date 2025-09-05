@@ -687,10 +687,10 @@ quadrantChart
     title The Operational Chasm in Document Intelligence
     x-axis Static Legal Repository --> Dynamic Operational Tool
     y-axis Financial/Audit Focus --> Legal/Workflow Focus
-    quadrant-1 High Legal Workflow Low Financial Insight
-    quadrant-2 The Strategic Opportunity
-    quadrant-3 High Financial Insight Low Legal Context
-    quadrant-4 Low Strategic Value
+    quadrant-1 Legal-Heavy, Finance-Light
+    quadrant-2 Strategic Opportunity Zone
+    quadrant-3 Finance-Heavy, Legal-Light
+    quadrant-4 Low Impact Zone
     "DocuSign CLM, Ironclad": [0.2, 0.8]
     "PandaDoc": [0.1, 0.6]
     "Kira Systems, LawGeex": [0.4, 0.7]
@@ -747,15 +747,15 @@ gantt
     dateFormat  YYYY-MM-DD
     axisFormat %Y Q%q
     
-    section Foundation (Completed)
-    MVP Development :done, mvp, 2025-08-15, 2025-09-05
+    section Foundation Phase
+    MVP Development Platform :done, mvp, 2025-08-15, 2025-09-05
     
-    section Strategic Enhancements (Next Steps)
+    section Strategic Enhancements
     Dynamic Obligation Ledger :active, ledger, 2025-09-06, 30d
     SLA Sentinel :sentinel, after ledger, 20d
     Automated Reconciliation :reconciliation, after sentinel, 25d
     
-    section Enterprise-Ready (Long-Term Vision)
+    section Enterprise Integration
     Clause-to-Cash Audit Trail :audit, 2025-11-15, 45d
     Partner Self-Service Portal :portal, after audit, 30d
     Amendment Impact Simulator :simulator, after portal, 30d
