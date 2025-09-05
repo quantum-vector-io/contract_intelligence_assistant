@@ -186,7 +186,7 @@ if ('auto_generate_summary' in st.session_state and st.session_state.auto_genera
     # Generate summaries for each file
     for file_type, file_obj in current_files:
         if file_obj:
-            with st.spinner(f"� Analyzing {file_obj.name}..."):
+            with st.spinner(f"🔍 Analyzing {file_obj.name}..."):
                 try:
                     # Upload file and get summary
                     files = {}
@@ -541,7 +541,7 @@ if ask_button_clicked:
 st.markdown("---")
 
 # Key Features Section - Business Value Focus
-st.markdown("### � Key Features")
+st.markdown("### ✨ Key Features")
 with st.expander("Platform Capabilities", expanded=False):
     col1, col2, col3 = st.columns(3)
     with col1:
