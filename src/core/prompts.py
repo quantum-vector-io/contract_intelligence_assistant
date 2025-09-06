@@ -1,6 +1,20 @@
 """
-Centralized prompts for the Contract Intelligence Assistant.
-Contains all prompts used for analysis, summarization, and reporting.
+Centralized AI prompt templates for Contract Intelligence Assistant.
+
+This module contains carefully crafted prompt templates used throughout the
+Contract Intelligence Assistant platform for AI-powered analysis, summarization,
+and reporting. These prompts are designed to ensure consistent, high-quality
+outputs from language models for legal and financial document analysis.
+
+The prompts follow specific templates for different use cases including detailed
+multi-document analysis, executive summaries, and structured reporting formats.
+Each prompt is optimized for accuracy, relevance, and professional output quality.
+
+Constants:
+    EXPERT_ANALYST_PROMPT: Detailed analysis prompt for complex user queries
+    ANALYSIS_REPORT_FORMAT: Structured format template for analysis reports  
+    EXECUTIVE_SUMMARY_PROMPT: Quick summary prompt for document uploads
+    SUMMARY_FORMAT: Template for executive summary outputs
 """
 
 # Used for detailed, multi-document analysis and answering specific user queries.

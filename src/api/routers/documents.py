@@ -1,5 +1,13 @@
 """
-Document indexing API router.
+Document management and indexing API endpoints.
+
+This module provides REST endpoints for uploading, indexing, and searching
+documents within the Contract Intelligence Assistant platform. It handles
+file processing, text extraction, and integration with the document indexing
+service for semantic search capabilities.
+
+The router supports multiple document formats and provides both text-based
+and semantic search functionality through OpenSearch integration.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Dict, Any, Optional
@@ -19,7 +27,15 @@ indexing_service = DocumentIndexingService()
 
 
 class TextIndexRequest(BaseModel):
-    """Request model for indexing raw text."""
+    """Request model for indexing raw text content.
+    
+    Attributes:
+        text (str): The raw text content to index.
+        title (str, optional): Document title for identification.
+        document_type (str, optional): Type classification (default: "general").
+        partner_name (str, optional): Associated partner name.
+        metadata (Dict[str, Any], optional): Additional document metadata.
+    """
     text: str
     title: Optional[str] = None
     document_type: Optional[str] = "general"
@@ -28,7 +44,14 @@ class TextIndexRequest(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    """Request model for search."""
+    """Request model for document search operations.
+    
+    Attributes:
+        query (str): Search query string.
+        size (int, optional): Maximum number of results to return (default: 10).
+        search_type (str, optional): Search algorithm type - "text", "semantic", 
+            or "hybrid" (default: "hybrid").
+    """
     query: str
     size: Optional[int] = 10
     search_type: Optional[str] = "hybrid"  # "text", "semantic", or "hybrid"
@@ -41,10 +64,23 @@ async def upload_and_index_file(
     document_type: Optional[str] = Form("general"),
     partner_name: Optional[str] = Form(None)
 ) -> Dict[str, Any]:
-    """
-    Upload and index a document file.
+    """Upload and index a document file for search and analysis.
     
-    Supports PDF and text files.
+    Processes uploaded files (PDF or text) by extracting content and indexing
+    it in OpenSearch for later retrieval and analysis. Supports metadata
+    association for better organization and filtering.
+    
+    Args:
+        file (UploadFile): The document file to upload and process.
+        title (str, optional): Custom title for the document.
+        document_type (str, optional): Document classification type.
+        partner_name (str, optional): Associated partner identifier.
+        
+    Returns:
+        Dict[str, Any]: Upload results with document ID and processing status.
+        
+    Raises:
+        HTTPException: When file type is unsupported or processing fails.
     """
     try:
         # Validate file type

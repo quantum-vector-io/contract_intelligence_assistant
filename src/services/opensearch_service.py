@@ -1,5 +1,13 @@
 """
 OpenSearch service for document indexing and search operations.
+
+This module provides a comprehensive service layer for interacting with
+OpenSearch clusters. It handles document indexing, search operations, index
+management, and health monitoring for the Contract Intelligence Assistant
+platform's document storage and retrieval capabilities.
+
+The service abstracts OpenSearch client operations and provides a clean
+interface for document operations with proper error handling and logging.
 """
 import logging
 from typing import Dict, List, Optional, Any
@@ -12,15 +20,41 @@ logger = logging.getLogger(__name__)
 
 
 class OpenSearchService:
-    """Service for OpenSearch operations."""
+    """Service for comprehensive OpenSearch operations and document management.
+    
+    This service provides a high-level interface for OpenSearch operations
+    including document indexing, search queries, index management, and health
+    monitoring. It handles connection management, error handling, and provides
+    optimized search capabilities for the document intelligence platform.
+    
+    Attributes:
+        client (OpenSearch): Configured OpenSearch client instance.
+        index_name (str): Default index name for document operations.
+    """
     
     def __init__(self):
-        """Initialize OpenSearch client."""
+        """Initialize OpenSearch service with configured client and settings.
+        
+        Creates an OpenSearch client connection using application settings
+        and prepares the service for document operations.
+        """
         self.client = self._create_client()
         self.index_name = settings.opensearch_index_name
     
     def _create_client(self) -> OpenSearch:
-        """Create and configure OpenSearch client."""
+        """Create and configure OpenSearch client with optimized settings.
+        
+        Establishes connection to OpenSearch cluster using application
+        configuration with appropriate timeouts, retry policies, and
+        connection parameters for reliable operation.
+        
+        Returns:
+            OpenSearch: Configured OpenSearch client instance.
+            
+        Raises:
+            Exception: When client initialization fails due to connection
+                or configuration issues.
+        """
         try:
             client = OpenSearch(
                 hosts=[{
@@ -44,7 +78,19 @@ class OpenSearchService:
             raise
     
     def health_check(self) -> Dict[str, Any]:
-        """Check OpenSearch cluster health."""
+        """Check OpenSearch cluster health and availability.
+        
+        Performs a health check on the OpenSearch cluster to verify
+        connectivity and cluster status. This is essential for monitoring
+        and ensuring service availability.
+        
+        Returns:
+            Dict[str, Any]: Cluster health information including status,
+                node counts, and performance metrics.
+                
+        Raises:
+            OpenSearchException: When cluster is unreachable or unhealthy.
+        """
         try:
             health = self.client.cluster.health()
             logger.info(f"OpenSearch health check: {health.get('status', 'unknown')}")

@@ -1,5 +1,13 @@
 """
 FastAPI main application for Contract Intelligence Assistant.
+
+This module initializes and configures the FastAPI web application that serves
+as the backend for the Contract Intelligence Assistant platform. It provides
+REST endpoints for document processing, financial analysis, and system health
+monitoring through modular routers.
+
+The application includes CORS middleware for cross-origin requests and
+conditional API documentation based on debug settings.
 """
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,7 +47,14 @@ app.include_router(financial_analysis.router)
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Return basic application information and status.
+    
+    Provides the application name, version, and current running status
+    for health monitoring and service identification purposes.
+    
+    Returns:
+        dict: Application metadata containing name, version, and status.
+    """
     return {
         "message": f"Welcome to {settings.app_name}",
         "version": settings.app_version,
@@ -48,7 +63,14 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Perform application health check.
+    
+    Returns the current health status of the application including
+    service name and version information for monitoring systems.
+    
+    Returns:
+        dict: Health status information with service details.
+    """
     return {
         "status": "healthy",
         "service": settings.app_name,
@@ -60,8 +82,22 @@ async def generate_document_summary(
     payout_file: UploadFile = None,
     filename: str = None
 ):
-    """
-    Generate an executive summary for uploaded document(s).
+    """Generate an executive summary for uploaded document(s).
+    
+    Processes uploaded contract or payout files through the document indexing
+    and RAG services to generate intelligent summaries. Creates a temporary
+    session for document processing and analysis.
+    
+    Args:
+        contract_file (UploadFile, optional): Contract document to analyze.
+        payout_file (UploadFile, optional): Payout report to analyze.
+        filename (str, optional): Custom filename for the document.
+        
+    Returns:
+        dict: Summary results or error information.
+        
+    Raises:
+        Exception: When document processing or analysis fails.
     """
     from src.services.document_indexing_service import DocumentIndexingService
     from src.services.rag_service import FinancialAnalystRAGChain
