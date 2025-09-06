@@ -1,6 +1,14 @@
 """
-Complete document indexing service that combines document processing, 
-embedding generation, and OpenSearch indexing.
+Complete document indexing service for processing and search integration.
+
+This module provides a comprehensive service that combines document processing,
+embedding generation, and OpenSearch indexing into a unified workflow. It
+handles the complete pipeline from raw documents to searchable indexed content
+with semantic embeddings.
+
+The service orchestrates multiple components to process various document formats,
+generate embeddings for semantic search, and store the results in OpenSearch
+for retrieval and analysis operations.
 """
 import logging
 from typing import List, Dict, Any, Optional, Union
@@ -15,26 +23,51 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentIndexingService:
-    """
-    Complete service for processing and indexing documents with embeddings.
+    """Complete service for processing and indexing documents with embeddings.
+    
+    This service provides end-to-end document processing capabilities by
+    combining document parsing, text chunking, embedding generation, and
+    OpenSearch indexing into a single cohesive workflow.
+    
+    The service handles multiple document formats and ensures proper metadata
+    association for enhanced search and retrieval operations.
+    
+    Attributes:
+        document_processor (DocumentProcessor): Handles document parsing and chunking.
+        embedding_service (EmbeddingService): Generates semantic embeddings.
+        opensearch_service (OpenSearchService): Manages search index operations.
     """
     
     def __init__(self):
-        """Initialize the document indexing service."""
+        """Initialize the document indexing service with required components.
+        
+        Sets up the document processor for file handling, embedding service
+        for semantic vector generation, and OpenSearch service for indexing
+        and retrieval operations.
+        """
         self.document_processor = DocumentProcessor()
         self.embedding_service = EmbeddingService()
         self.opensearch_service = OpenSearchService()
     
     def index_file(self, file_path: str, document_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Process and index a single file.
+        """Process and index a single file with full pipeline processing.
+        
+        Executes the complete document indexing workflow including file parsing,
+        text chunking, embedding generation, and OpenSearch storage. Provides
+        comprehensive error handling and progress logging.
         
         Args:
-            file_path: Path to the file to process
-            document_metadata: Additional metadata for the document
-            
+            file_path (str): Absolute path to the file to process.
+            document_metadata (Dict[str, Any], optional): Additional metadata
+                to associate with the document for enhanced search and filtering.
+                
         Returns:
-            Indexing results with statistics
+            Dict[str, Any]: Indexing results containing processing statistics,
+                chunk counts, and success/error information.
+                
+        Raises:
+            ValueError: When no chunks are generated from the document.
+            Exception: When document processing or indexing operations fail.
         """
         logger.info(f"Starting indexing process for file: {file_path}")
         
