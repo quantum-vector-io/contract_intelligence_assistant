@@ -1,89 +1,19 @@
-"""Advanced LangChain-integrated document processing service for enterprise RAG applications.
+"""LangChain-integrated document processing for RAG applications.
 
-This module provides a sophisticated document processing pipeline that leverages
-LangChain's advanced text splitting and document handling capabilities, specifically
-optimized for financial contract analysis and restaurant partnership document
-processing. It serves as the bridge between raw document content and the RAG
-system's semantic understanding capabilities.
+Provides document processing using LangChain's RecursiveCharacterTextSplitter,
+optimized for financial contracts and restaurant partnership documents.
 
-The service implements LangChain's RecursiveCharacterTextSplitter with custom
-configurations tailored for legal and financial documents, ensuring optimal
-chunk boundaries that preserve semantic coherence while maintaining compatibility
-with embedding models and vector storage systems.
-
-Key Capabilities:
-    - LangChain Document object creation for RAG pipeline integration
-    - Intelligent text splitting with recursive character-based strategies
-    - Semantic boundary preservation for contract and financial documents
-    - Comprehensive metadata management and propagation
-    - Multi-format document support with unified output format
-    - Production-grade error handling and quality validation
-
-LangChain Integration:
-    - RecursiveCharacterTextSplitter for optimal chunk creation
-    - Document schema compatibility for seamless RAG operations
-    - Metadata standardization for consistent document handling
-    - Vector store preparation with proper document formatting
-
-Text Splitting Strategy:
-    - Hierarchical separators for logical document structure preservation
-    - Configurable chunk sizes optimized for embedding generation
-    - Intelligent overlap to maintain context across boundaries
-    - Paragraph and sentence boundary awareness
-    - Character-level fallback for edge cases
-
-Document Processing Pipeline:
-    1. File validation and format detection
-    2. Text extraction using optimized backends
-    3. LangChain-based intelligent text splitting
-    4. Document object creation with metadata enrichment
-    5. Quality validation and coherence checking
-    6. RAG-ready output formatting
+Key Features:
+    - LangChain Document object creation for RAG integration
+    - Semantic boundary preservation with recursive splitting
+    - Multi-format support with unified output format
+    - Comprehensive metadata management
 
 Example:
     ```python
-    # Initialize LangChain document processor
     processor = LangChainDocumentProcessor()
-    
-    # Process contract for RAG pipeline
-    documents = processor.process_file_for_rag(
-        file_path="partnership_agreement.pdf",
-        document_metadata={
-            "partner_name": "SushiExpress24-7",
-            "document_type": "contract",
-            "business_category": "restaurant"
-        }
-    )
-    
-    # Documents are ready for vector store indexing
-    for doc in documents:
-        print(f"Chunk {doc.metadata['chunk_index']}: {len(doc.page_content)} chars")
+    documents = processor.process_file("contract.pdf", {"partner": "Restaurant"})
     ```
-
-Integration Benefits:
-    - Seamless compatibility with LangChain RAG components
-    - Optimized chunk sizes for embedding model performance
-    - Consistent metadata structure across the pipeline
-    - Enhanced semantic coherence in document splitting
-
-Technical Features:
-    - RecursiveCharacterTextSplitter with custom separator hierarchy
-    - Document metadata standardization and enrichment
-    - Multi-backend text extraction with LangChain formatting
-    - Quality assurance and validation throughout the pipeline
-
-Dependencies:
-    - langchain: Advanced text splitting and document handling
-    - document_service: Base text extraction capabilities
-    - logging: Comprehensive operation monitoring
-
-Note:
-    This service is specifically designed to meet LangChain RAG pipeline
-    requirements while maintaining compatibility with the existing document
-    processing infrastructure.
-
-Version:
-    2.0.0 - Enhanced with LangChain integration and optimized text splitting
 """
 import logging
 from typing import List, Dict, Any, Optional

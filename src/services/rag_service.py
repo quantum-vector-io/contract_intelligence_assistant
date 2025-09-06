@@ -1,60 +1,19 @@
-"""Retrieval-Augmented Generation (RAG) service for financial contract analysis.
+"""RAG service for financial contract analysis.
 
-This module provides a comprehensive RAG implementation specifically designed for financial
-analysis of restaurant partnership contracts and payout reports. It combines OpenAI's GPT-4
-language model with OpenSearch vector storage and LangChain orchestration to deliver
-sophisticated contract discrepancy analysis capabilities.
+Provides AI-powered analysis of restaurant partnership contracts and payout reports
+using OpenAI GPT-4, OpenSearch vector storage, and LangChain orchestration.
 
-The service acts as an AI financial analyst that can:
-- Compare legal contracts with financial payout reports
-- Identify discrepancies in commission rates, fees, and payment terms
-- Generate detailed financial analysis reports with executive summaries
-- Process complex multi-document queries with contextual understanding
-- Provide both simple informational queries and complex analytical insights
-
-Key Components:
-    - FinancialAnalystRAGChain: Main RAG orchestration class
-    - LangChain integration for document processing and retrieval
-    - OpenAI GPT-4 for advanced reasoning and analysis
-    - OpenSearch vector storage for semantic document retrieval
-    - Specialized prompts for financial domain expertise
-
-The service supports multiple analysis modes:
-    - Expert financial analysis with detailed calculations
-    - Executive summary generation for high-level insights
-    - Simple database queries for informational requests
-    - Legacy compatibility for existing integrations
+Key Features:
+    - Contract-to-payout discrepancy detection
+    - Commission rate variance analysis  
+    - Multi-document comparative analysis
+    - Executive summary generation
 
 Example:
     ```python
-    rag_service = FinancialAnalystRAGChain()
-    
-    # Load partner documents for analysis
-    docs = rag_service.load_partner_documents("SushiExpress24-7")
-    
-    # Perform financial discrepancy analysis
-    analysis = rag_service.analyze_query(
-        question="Compare commission rates between contract and payout report",
-        query_type="financial_analysis"
-    )
-    
-    # Generate executive summary
-    summary = rag_service.generate_executive_summary(partner_name="SushiExpress24-7")
+    rag = FinancialAnalystRAGChain()
+    analysis = rag.analyze_contract_discrepancies("SushiExpress24-7")
     ```
-
-Dependencies:
-    - langchain: Document processing and RAG orchestration
-    - openai: GPT-4 language model and embeddings
-    - opensearch: Vector storage and semantic search
-    - pydantic: Configuration management and data validation
-
-Note:
-    This service requires proper configuration of OpenAI API keys and OpenSearch
-    connectivity. Ensure that document indexing is completed before running
-    analysis queries.
-
-Version:
-    2.0.0 - Enhanced with multi-document support and advanced financial analysis
 """
 import logging
 from typing import List, Dict, Any, Optional, Tuple
@@ -78,122 +37,34 @@ logger = logging.getLogger(__name__)
 
 
 class FinancialAnalystRAGChain:
-    """Comprehensive RAG chain for financial analysis of restaurant partnership agreements.
+    """RAG chain for financial analysis of restaurant partnership contracts.
     
-    This class implements a sophisticated Retrieval-Augmented Generation system specifically
-    designed for analyzing restaurant partnership contracts and their corresponding payout
-    reports. It acts as an AI financial analyst capable of identifying discrepancies,
-    calculating variances, and generating detailed financial analysis reports.
+    Analyzes restaurant partnership contracts and payout reports to identify
+    discrepancies using GPT-4, OpenSearch, and LangChain.
     
-    The system combines multiple AI technologies:
-    - OpenAI GPT-4 for advanced reasoning and financial analysis
-    - OpenAI Ada-002 embeddings for semantic document retrieval
-    - OpenSearch vector database for scalable document storage
-    - LangChain for orchestrating the RAG pipeline
-    - Custom financial domain prompts for expert-level analysis
-    
-    Key Capabilities:
-        - Multi-document financial discrepancy analysis
+    Key Features:
+        - Contract-to-payout discrepancy analysis
         - Commission rate variance calculations
-        - Fee structure comparisons between contracts and reports
-        - Executive summary generation for stakeholder reporting
-        - Contextual query processing with domain expertise
-        - Support for various restaurant partnership platforms
-    
-    Supported Analysis Types:
-        - Expert financial analysis with detailed calculations
-        - Executive summaries for high-level business insights
-        - Simple database queries for informational requests
-        - Legacy format analysis for backward compatibility
-    
-    Document Processing:
-        - PDF contract parsing and text extraction
-        - Payout report data normalization
-        - Multi-partner document organization
-        - Semantic chunking for optimal retrieval
-    
-    Attributes:
-        document_processor (LangChainDocumentProcessor): Handles document processing operations.
-        opensearch_service (OpenSearchService): Manages vector storage and retrieval.
-        llm (ChatOpenAI): GPT-4 language model for analysis and reasoning.
-        embeddings (OpenAIEmbeddings): Ada-002 model for document embeddings.
-        expert_analyst_prompt (PromptTemplate): Template for expert financial analysis.
-        detailed_report_prompt (PromptTemplate): Template for comprehensive reports.
-        executive_summary_prompt (PromptTemplate): Template for executive summaries.
-        financial_analyst_prompt (PromptTemplate): Legacy compatibility template.
-        simple_database_prompt (PromptTemplate): Template for simple queries.
-        partner_documents_cache (Dict): In-memory cache for partner document storage.
+        - Executive summary generation
+        - Multi-document analysis
     
     Example:
         ```python
-        # Initialize the RAG chain
-        rag_chain = FinancialAnalystRAGChain()
-        
-        # Load documents for a specific partner
-        docs = rag_chain.load_partner_documents("SushiExpress24-7")
-        
-        # Perform financial analysis
-        analysis_result = rag_chain.analyze_query(
-            question="Identify commission rate discrepancies between contract and payout report",
-            query_type="financial_analysis"
-        )
-        
-        # Generate executive summary
-        summary = rag_chain.generate_executive_summary(
-            partner_name="SushiExpress24-7"
-        )
+        rag = FinancialAnalystRAGChain()
+        analysis = rag.analyze_contract_discrepancies("SushiExpress24-7")
+        summary = rag.generate_executive_summary("session_id", "file.pdf")
         ```
-    
-    Note:
-        This class requires proper initialization of OpenAI API credentials and
-        OpenSearch connectivity. Ensure that document indexing is completed
-        before attempting analysis operations.
-    
-    Raises:
-        ConnectionError: When OpenSearch or OpenAI services are unavailable.
-        ValueError: When required configuration parameters are missing.
-        DocumentNotFoundError: When requested partner documents are not indexed.
     """
     
     def __init__(self):
-        """Initialize the Financial Analyst RAG chain with all required components.
+        """Initialize the RAG chain with OpenAI and OpenSearch components.
         
-        Sets up the complete RAG pipeline including document processing, vector storage,
-        language models, embeddings, and specialized financial analysis prompts. The
-        initialization creates a production-ready system optimized for financial
-        contract analysis with low-temperature settings for consistent results.
-        
-        Components Initialized:
-            - LangChain document processor for PDF and text handling
-            - OpenSearch service for vector storage and semantic retrieval
-            - GPT-4 language model with financial analysis optimization
-            - Ada-002 embeddings for high-quality document representations
-            - Specialized prompt templates for different analysis types
-            - Partner document caching system for performance optimization
-        
-        Configuration Settings:
-            - GPT-4 model for advanced reasoning capabilities
-            - Temperature 0.1 for consistent analytical outputs
-            - Streaming disabled to prevent text fragmentation
-            - Ada-002 embeddings for optimal semantic understanding
-        
-        Prompt Templates:
-            - Expert analyst: Comprehensive financial analysis with calculations
-            - Detailed report: Full analysis with structured reporting format
-            - Executive summary: High-level insights for stakeholders
-            - Legacy format: Backward compatibility with existing systems
-            - Simple database: Basic informational query responses
+        Sets up GPT-4 for analysis, Ada-002 for embeddings, document processor,
+        and specialized financial analysis prompts.
         
         Raises:
-            ValueError: When OpenAI API key is not configured in settings.
+            ValueError: When OpenAI API key is not configured.
             ConnectionError: When OpenSearch service is not accessible.
-            ImportError: When required dependencies are not installed.
-        
-        Note:
-            This method assumes that all required environment variables and
-            configuration settings are properly set before instantiation.
-            The partner document cache is initialized empty and will be
-            populated during document loading operations.
         """
         self.document_processor = LangChainDocumentProcessor()
         self.opensearch_service = OpenSearchService()
@@ -242,41 +113,16 @@ class FinancialAnalystRAGChain:
         self.partner_documents_cache = {}  # Cache for partner documents
         
     def _clean_response_text(self, text: str) -> str:
-        """Clean up potential streaming artifacts and formatting issues in AI responses.
+        """Clean up streaming artifacts and formatting issues in AI responses.
         
-        This method addresses common issues that can occur in AI-generated text,
-        particularly when streaming is involved or when text formatting is disrupted.
-        It intelligently reconstructs fragmented text while preserving legitimate
-        line breaks and formatting.
-        
-        Cleaning Operations:
-            - Removes single-character lines that are streaming artifacts
-            - Reconstructs fragmented numbers and currency values
-            - Fixes separated decimal points and commas
-            - Repairs common word fragmentations
-            - Preserves intentional formatting and line breaks
-            - Removes excessive whitespace while maintaining readability
-        
-        Text Reconstruction:
-            - Currency: "2\\n,\\n925.00" → "2,925.00"
-            - Decimals: "925\\n.\\n00" → "925.00"
-            - Common words: "w\\ni\\nt\\nh" → "with"
-            - Conservative approach to avoid joining legitimate word boundaries
+        Fixes fragmented numbers, currency values, and common word separations
+        caused by streaming or text processing issues.
         
         Args:
-            text (str): Raw AI response text that may contain streaming artifacts
-                or formatting issues requiring cleanup.
+            text: Raw AI response text with potential artifacts.
         
         Returns:
-            str: Cleaned and properly formatted text with artifacts removed
-                and fragmented content reconstructed while preserving
-                intentional formatting.
-        
-        Note:
-            This method uses conservative patterns to avoid incorrectly joining
-            text that should remain separated. It focuses on obvious streaming
-            artifacts and common formatting issues rather than aggressive
-            text reconstruction.
+            Cleaned text with artifacts removed and proper formatting.
         """
         import re
         
@@ -339,56 +185,16 @@ class FinancialAnalystRAGChain:
         return cleaned_text.strip()
         
     def _is_simple_database_query(self, question: str) -> bool:
-        """Classify user questions to determine appropriate analysis approach.
+        """Classify user questions as simple database queries or complex analysis.
         
-        This method analyzes user questions to determine whether they require
-        simple informational responses or complex financial analysis. This
-        classification enables the system to use the most appropriate prompt
-        template and response format for optimal user experience.
-        
-        Classification Logic:
-            - Simple queries: Basic information requests about available data
-            - Complex queries: Financial analysis requiring calculation and reasoning
-            - Hybrid detection: Balances simple patterns with analytical indicators
-            - Length heuristics: Very short questions typically seek simple information
-        
-        Simple Query Indicators:
-            - "list", "names", "show me", "what are", "which", "how many"
-            - "all restaurants", "all partners", "all documents"
-            - "from db", "in database", "available", "stored"
-            - Questions under 5 words without analytical keywords
-        
-        Complex Query Indicators:
-            - "analyze", "discrepancy", "compare", "calculate", "reconcile"
-            - "payout", "commission", "fee", "penalty", "financial", "money"
-            - "difference", "variance", "explanation", "why", "how much"
-            - Financial terms requiring analytical reasoning
+        Determines whether to use simple informational response or detailed
+        financial analysis based on question keywords and patterns.
         
         Args:
-            question (str): The user's question to be classified for
-                appropriate processing approach.
+            question: User's question to classify.
         
         Returns:
-            bool: True if the question is a simple database query requiring
-                basic informational response, False if it requires complex
-                financial analysis with calculations and reasoning.
-        
-        Examples:
-            Simple queries:
-                - "List all restaurant names"
-                - "Show me available documents"
-                - "What partners are in the database?"
-            
-            Complex queries:
-                - "Analyze commission rate discrepancies"
-                - "Compare payout amounts with contract terms"
-                - "Calculate variance in delivery fees"
-        
-        Note:
-            This classification directly impacts the prompt template selection
-            and response format. Misclassification can lead to overly complex
-            responses for simple queries or insufficient detail for analytical
-            requests.
+            True for simple queries (lists, names, counts), False for analysis.
         """
         question_lower = question.lower().strip()
         
@@ -423,73 +229,20 @@ class FinancialAnalystRAGChain:
         return False
         
     def load_partner_documents(self, partner_name: str) -> Dict[str, List[Document]]:
-        """Load and organize all documents for a specific restaurant partner from OpenSearch.
+        """Load and organize all documents for a restaurant partner from OpenSearch.
         
-        This method retrieves all indexed documents associated with a restaurant partner,
-        organizing them by document type for efficient analysis. It implements intelligent
-        caching to improve performance and supports comprehensive document discovery
-        across different partnership platforms.
-        
-        Document Retrieval Process:
-            1. Check partner document cache for existing data
-            2. Query OpenSearch index using partner name matching
-            3. Retrieve document chunks with metadata preservation
-            4. Organize documents by type (contracts, reports, addendums)
-            5. Cache results for subsequent queries
-            6. Log retrieval statistics for monitoring
-        
-        Supported Document Types:
-            - Contracts: Partnership agreements and terms
-            - Payout Reports: Financial transaction records
-            - Addendums: Contract modifications and supplements
-            - Amendments: Legal changes to existing agreements
-        
-        Document Organization:
-            - Groups chunks by document type for targeted analysis
-            - Preserves metadata including partner name and chunk IDs
-            - Maintains content integrity across document fragments
-            - Enables efficient retrieval for specific analysis types
+        Retrieves and caches documents by type (contracts, payout reports) for
+        efficient analysis. Organizes chunks by document type.
         
         Args:
-            partner_name (str): Name of the restaurant partner for which to load
-                documents. Must match the indexed partner_name field in OpenSearch.
-                Case-sensitive matching is used for precise retrieval.
+            partner_name: Restaurant partner name matching indexed documents.
         
         Returns:
-            Dict[str, List[Document]]: Dictionary mapping document types to lists
-                of LangChain Document objects. Each document contains:
-                - page_content: The actual document text content
-                - metadata: Document type, partner name, chunk ID, and other attributes
+            Dictionary mapping document types to lists of LangChain Documents.
         
         Raises:
-            ConnectionError: When OpenSearch service is not accessible or returns errors.
-            ValueError: When partner_name is empty or None.
-            DocumentNotFoundError: When no documents are found for the specified partner.
-        
-        Example:
-            ```python
-            # Load documents for SushiExpress24-7
-            docs = rag_chain.load_partner_documents("SushiExpress24-7")
-            
-            # Access different document types
-            contracts = docs.get("contract", [])
-            reports = docs.get("payout_report", [])
-            
-            # Check document availability
-            if "contract" in docs and "payout_report" in docs:
-                # Perform comparative analysis
-                analysis = rag_chain.compare_documents(contracts, reports)
-            ```
-        
-        Note:
-            This method implements caching to improve performance for repeated
-            queries on the same partner. Cache invalidation is handled automatically
-            when new documents are indexed for the partner.
-        
-        Performance:
-            - First call: Queries OpenSearch and caches results
-            - Subsequent calls: Returns cached data for improved speed
-            - Cache memory usage scales with number of unique partners
+            ConnectionError: When OpenSearch is not accessible.
+            ValueError: When partner_name is empty or no documents found.
         """
         if partner_name in self.partner_documents_cache:
             logger.info(f"Using cached documents for partner: {partner_name}")

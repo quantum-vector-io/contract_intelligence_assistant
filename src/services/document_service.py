@@ -1,105 +1,21 @@
-"""Advanced document processing service for multi-format text extraction and intelligent chunking.
+"""Document processing service for multi-format text extraction and chunking.
 
-This module provides comprehensive document processing capabilities specifically
-designed for restaurant partnership contracts, payout reports, and financial
-documents. It handles multiple file formats with intelligent text extraction,
-semantic chunking, and metadata enrichment for optimal RAG system integration.
+Processes restaurant partnership contracts and payout reports with support for
+PDF, TXT, and MD formats. Provides intelligent text extraction, chunking, and
+metadata enrichment for RAG system integration.
 
-The service supports various document formats including PDF contracts, text-based
-payout reports, and structured financial documents. It implements sophisticated
-text extraction algorithms with fallback mechanisms, ensuring reliable content
-processing even for complex document layouts and formats.
-
-Key Capabilities:
+Key Features:
     - Multi-format document processing (PDF, TXT, MD)
-    - Intelligent text extraction with multiple PDF parsing backends
-    - Semantic-aware chunking with configurable overlap
-    - Comprehensive metadata enrichment and tracking
-    - File size validation and security checks
-    - Error handling with detailed diagnostics
-    - Production-grade logging and monitoring
-
-Document Processing Pipeline:
-    1. File validation and security checks
-    2. Format detection and appropriate parser selection
-    3. Text extraction with quality validation
-    4. Intelligent chunking with semantic preservation
-    5. Metadata enrichment and tracking
-    6. Quality assurance and error handling
-
-Supported Formats:
-    - PDF: Restaurant contracts, partnership agreements, legal documents
-    - TXT: Payout reports, financial summaries, structured data
-    - MD: Documentation, analysis reports, structured content
-
-PDF Processing Backends:
-    - pdfplumber: Primary backend for complex layouts and tables
-    - PyMuPDF (fitz): High-performance alternative for large documents
-    - PyPDF2: Fallback option for compatibility and simple documents
-
-Technical Features:
-    - Configurable chunk sizes for optimal RAG performance
-    - Overlapping chunks to preserve context boundaries
-    - Automatic metadata generation with document fingerprinting
-    - File size limits and security validation
-    - Memory-efficient processing for large documents
+    - Multiple PDF parsing backends (pdfplumber, PyMuPDF, PyPDF2)
+    - Configurable chunking with overlap preservation
+    - File validation and security checks
+    - Comprehensive metadata generation
 
 Example:
     ```python
-    # Initialize document processor
     processor = DocumentProcessor()
-    
-    # Process PDF contract
-    contract_chunks = processor.process_file(
-        file_path="partnership_agreement.pdf",
-        document_metadata={
-            "partner_name": "SushiExpress24-7",
-            "document_type": "contract"
-        }
-    )
-    
-    # Process text-based payout report
-    payout_chunks = processor.process_text(
-        text=payout_report_content,
-        document_metadata={
-            "partner_name": "SushiExpress24-7",
-            "document_type": "payout_report",
-            "report_date": "2024-07-21"
-        }
-    )
+    chunks = processor.process_file("contract.pdf", {"partner": "Restaurant"})
     ```
-
-Integration Points:
-    - Embedding service for vector generation
-    - OpenSearch indexing for document storage
-    - RAG service for context retrieval
-    - API endpoints for document upload and processing
-
-Performance Considerations:
-    - Streaming processing for large documents
-    - Memory optimization for batch operations
-    - Configurable processing parameters
-    - Intelligent caching for repeated operations
-
-Security Features:
-    - File size validation to prevent resource exhaustion
-    - File type validation for security compliance
-    - Path traversal protection
-    - Content validation and sanitization
-
-Dependencies:
-    - pdfplumber: Advanced PDF parsing with table support
-    - PyMuPDF (fitz): High-performance PDF processing
-    - PyPDF2: Compatibility and fallback PDF processing
-    - logging: Comprehensive operation monitoring
-
-Note:
-    This service requires at least one PDF processing library to be installed
-    for PDF document support. Multiple backends provide redundancy and
-    optimization options for different document types.
-
-Version:
-    2.0.0 - Enhanced with multi-backend PDF processing and production optimizations
 """
 import logging
 from typing import List, Dict, Any, Optional
@@ -129,106 +45,21 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentProcessor:
-    """Production-grade document processing service for multi-format text extraction and chunking.
+    """Processes restaurant contracts and payout reports with multi-format support.
     
-    This service provides enterprise-level document processing capabilities specifically
-    optimized for restaurant partnership contracts, financial payout reports, and
-    related business documents. It implements sophisticated text extraction algorithms
-    with multiple backend support, intelligent chunking strategies, and comprehensive
-    metadata management.
-    
-    The processor handles complex document layouts, tables, and various formatting
-    challenges commonly found in legal contracts and financial reports. It provides
-    robust fallback mechanisms and detailed error handling to ensure reliable
-    processing across diverse document types and quality levels.
-    
-    Processing Capabilities:
-        - Multi-format document support (PDF, TXT, MD)
-        - Advanced PDF parsing with table and layout preservation
-        - Intelligent text chunking with semantic boundary detection
-        - Comprehensive metadata extraction and enrichment
-        - File validation and security compliance
-        - Memory-efficient processing for large document collections
-    
-    PDF Processing Features:
-        - Multiple backend support (pdfplumber, PyMuPDF, PyPDF2)
-        - Automatic fallback between parsers for optimal results
-        - Table extraction and structured content handling
-        - Layout-aware text extraction for complex documents
-        - Quality validation and content verification
-    
-    Chunking Strategy:
-        - Configurable chunk sizes optimized for RAG systems
-        - Intelligent overlap to preserve context across boundaries
-        - Semantic-aware splitting to maintain document coherence
-        - Metadata propagation across all generated chunks
-        - Quality metrics for chunk assessment
-    
-    Security and Validation:
-        - File size limits to prevent resource exhaustion
-        - File type validation for security compliance
-        - Path traversal protection and input sanitization
-        - Content validation and quality assessment
-        - Error handling with detailed diagnostics
+    Handles PDF, TXT, and MD files with intelligent chunking and metadata enrichment.
+    Supports multiple PDF backends (pdfplumber, PyMuPDF, PyPDF2) with fallbacks.
     
     Attributes:
-        chunk_size (int): Maximum characters per document chunk for optimal processing.
-        chunk_overlap (int): Character overlap between chunks to preserve context.
-        max_file_size (int): Maximum file size in bytes for security and performance.
+        chunk_size (int): Maximum characters per chunk.
+        chunk_overlap (int): Character overlap between chunks.
+        max_file_size (int): Maximum file size in bytes.
     
     Example:
         ```python
-        # Initialize with default configuration
         processor = DocumentProcessor()
-        
-        # Process restaurant partnership contract
-        contract_chunks = processor.process_file(
-            file_path="partnership_agreement.pdf",
-            document_metadata={
-                "partner_name": "SushiExpress24-7",
-                "document_type": "contract",
-                "contract_date": "2022-03-10"
-            }
-        )
-        
-        # Process payout report text
-        payout_chunks = processor.process_text(
-            text=financial_report_content,
-            document_metadata={
-                "partner_name": "SushiExpress24-7",
-                "document_type": "payout_report",
-                "report_period": "2024-07-21"
-            }
-        )
-        
-        # Validate processing results
-        for chunk in contract_chunks:
-            print(f"Chunk {chunk['chunk_id']}: {len(chunk['content'])} characters")
+        chunks = processor.process_file("contract.pdf", {"partner": "Restaurant"})
         ```
-    
-    Configuration:
-        The service uses configuration values from settings for:
-        - chunk_size: Optimal chunk size for RAG processing
-        - chunk_overlap: Context preservation between chunks
-        - max_file_size_mb: Security limit for uploaded files
-    
-    Backend Selection:
-        PDF processing backends are selected based on:
-        - Document complexity and layout requirements
-        - Performance considerations for large files
-        - Availability of installed libraries
-        - Quality of extracted content
-    
-    Raises:
-        FileNotFoundError: When specified file paths do not exist.
-        ValueError: When file size exceeds limits or unsupported formats.
-        ProcessingError: When text extraction fails across all backends.
-        SecurityError: When file validation fails security checks.
-    
-    Note:
-        This service requires at least one PDF processing library (pdfplumber,
-        PyMuPDF, or PyPDF2) for PDF document support. Multiple backends provide
-        redundancy and optimization for different document characteristics.
     """
     
     def __init__(self):
@@ -282,107 +113,29 @@ class DocumentProcessor:
         self.max_file_size = settings.max_file_size_mb * 1024 * 1024  # Convert to bytes
     
     def process_file(self, file_path: str, document_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """Process document files with comprehensive text extraction and intelligent chunking.
-        
-        This method provides end-to-end document processing for various file formats,
-        implementing robust text extraction with multiple backend support, comprehensive
-        validation, and intelligent chunking optimized for RAG system integration.
-        The processing pipeline ensures reliable content extraction even from complex
-        document layouts and formats.
-        
-        Processing Pipeline:
-            1. File existence and accessibility validation
-            2. Security checks including file size and type validation
-            3. Format detection and appropriate backend selection
-            4. Text extraction with quality validation
-            5. Intelligent chunking with semantic preservation
-            6. Metadata enrichment and tracking
-            7. Quality assurance and error handling
-        
-        Security Features:
-            - File size validation to prevent resource exhaustion
-            - File type validation for security compliance
-            - Path traversal protection
-            - Content sanitization and validation
-        
-        Text Extraction:
-            - PDF: Multiple backend support (pdfplumber, PyMuPDF, PyPDF2)
-            - TXT: Direct text file reading with encoding detection
-            - MD: Markdown file processing with structure preservation
-            - Automatic fallback between backends for optimal results
-        
-        Metadata Generation:
-            - File system metadata (path, name, size, type)
-            - Processing metadata (timestamp, character count)
-            - Custom metadata integration
-            - Document fingerprinting for tracking
+        """Process document files with text extraction and chunking.
         
         Args:
-            file_path (str): Absolute or relative path to the document file
-                for processing. Must point to an existing, readable file
-                in a supported format (PDF, TXT, MD).
+            file_path (str): Path to document file (PDF, TXT, MD).
             document_metadata (Optional[Dict[str, Any]]): Additional metadata
-                to associate with the document and all generated chunks.
-                Common fields include partner_name, document_type,
-                contract_date, and business-specific identifiers.
+                for document and chunks.
         
         Returns:
-            List[Dict[str, Any]]: List of document chunks with comprehensive
-                metadata. Each chunk contains:
-                - content: Extracted text content for the chunk
-                - chunk_id: Unique identifier for the chunk
-                - chunk_index: Sequential position in the document
-                - file_path, file_name, file_size, file_type: File metadata
-                - processed_at: Processing timestamp
-                - total_characters: Character count for the chunk
-                - Additional custom metadata from document_metadata parameter
+            List[Dict[str, Any]]: Document chunks with metadata including
+                content, chunk_id, file info, and processing timestamp.
         
         Raises:
-            FileNotFoundError: When the specified file path does not exist
-                or is not accessible for reading.
-            ValueError: When file size exceeds configured limits, file format
-                is unsupported, or no extractable text content is found.
-            ProcessingError: When text extraction fails across all available
-                backends or processing encounters irrecoverable errors.
-            SecurityError: When file validation fails security checks or
-                file access is restricted.
+            FileNotFoundError: File path does not exist.
+            ValueError: File size exceeds limits or unsupported format.
+            ProcessingError: Text extraction fails across all backends.
         
         Example:
             ```python
-            # Process restaurant partnership contract
-            contract_chunks = processor.process_file(
-                file_path="/uploads/sushi_express_contract.pdf",
-                document_metadata={
-                    "partner_name": "SushiExpress24-7",
-                    "document_type": "contract",
-                    "platform": "SkipTheDishes",
-                    "contract_date": "2022-03-10",
-                    "business_category": "restaurant"
-                }
+            chunks = processor.process_file(
+                "contract.pdf", 
+                {"partner_name": "Restaurant", "type": "contract"}
             )
-            
-            # Validate processing results
-            print(f"Generated {len(contract_chunks)} chunks")
-            for chunk in contract_chunks[:3]:  # Show first 3 chunks
-                print(f"Chunk {chunk['chunk_index']}: {len(chunk['content'])} chars")
             ```
-        
-        Performance Considerations:
-            - Large files are processed in memory-efficient manner
-            - Multiple PDF backends provide optimization options
-            - Chunking strategy balances context preservation with processing efficiency
-            - Metadata processing is optimized for minimal overhead
-        
-        Quality Assurance:
-            - Text extraction quality validation
-            - Content completeness verification
-            - Chunk coherence assessment
-            - Error recovery and reporting
-        
-        Note:
-            The method automatically selects the most appropriate text extraction
-            backend based on file format and document characteristics. For PDF
-            files, it attempts multiple backends to ensure optimal text quality.
         """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
