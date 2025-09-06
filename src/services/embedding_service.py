@@ -102,94 +102,24 @@ class EmbeddingService:
             raise ValueError(f"Embedding generation failed: {e}")
     
     def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings for multiple texts using optimized batch processing.
-        
-        This method provides high-performance embedding generation for large document
-        collections using intelligent batching strategies, rate limiting, and
-        comprehensive error handling. It's specifically optimized for document
-        processing pipelines and large-scale vectorization operations.
-        
-        Batch Processing Strategy:
-            - Configurable batch sizes for optimal API utilization
-            - Automatic rate limiting to prevent quota exhaustion
-            - Error recovery with graceful degradation
-            - Memory-efficient processing for large collections
-            - Progress monitoring and detailed logging
-        
-        Processing Pipeline:
-            1. Input validation and empty text filtering
-            2. Text truncation with word boundary preservation
-            3. Intelligent batching based on configured limits
-            4. Rate-limited API calls with retry logic
-            5. Response validation and error handling
-            6. Comprehensive result aggregation
-        
-        Performance Optimizations:
-            - Batch size optimization for API efficiency
-            - Intelligent rate limiting between API calls
-            - Memory management for large document sets
-            - Error isolation to prevent batch failure
-            - Progress tracking for long-running operations
-        
-        Error Handling:
-            - Individual batch error isolation
-            - Graceful degradation with empty embeddings for failures
-            - Comprehensive logging for debugging and monitoring
-            - Automatic retry logic for transient failures
+        """Generate embeddings for multiple texts using batch processing.
         
         Args:
             texts (List[str]): List of text strings for embedding generation.
-                Each text can be document chunks, contract clauses, or
-                any textual content requiring vectorization. Empty
-                strings are automatically filtered out.
         
         Returns:
-            List[List[float]]: List of embedding vectors corresponding to
-                input texts. Each embedding is a 1536-dimensional float
-                vector. Failed embeddings are represented as empty lists
-                for error tracking and handling.
+            List[List[float]]: List of 1536-dimensional embedding vectors.
+                Failed embeddings are represented as empty lists.
         
         Raises:
-            ConnectionError: When OpenAI API is consistently unavailable
-                across multiple retry attempts.
-            QuotaExceededError: When API quota limits are exceeded and
-                rate limiting cannot resolve the issue.
-            ValueError: When input validation fails or batch processing
-                encounters irrecoverable errors.
+            ConnectionError: When OpenAI API is unavailable.
+            ValueError: When input validation fails.
         
         Example:
             ```python
-            # Process document chunks in batch
-            document_texts = [
-                "Contract clause 1: Commission terms...",
-                "Contract clause 2: Service fees...",
-                "Payout report: Weekly summary...",
-                "Amendment: Updated terms..."
-            ]
-            
-            embeddings = embedding_service.generate_embeddings_batch(document_texts)
-            
-            # Validate successful processing
-            successful_embeddings = [emb for emb in embeddings if emb]
-            print(f"Generated {len(successful_embeddings)} embeddings successfully")
+            texts = ["Contract clause...", "Payout report..."]
+            embeddings = service.generate_embeddings_batch(texts)
             ```
-        
-        Batch Configuration:
-            - Default batch size: 100 texts per API call
-            - Rate limit delay: 1.0 seconds between batches
-            - Automatic retry: 3 attempts for failed batches
-            - Memory optimization: Streaming processing for large sets
-        
-        Monitoring:
-            - Progress logging for batch completion tracking
-            - Error rate monitoring for service health assessment
-            - Performance metrics for optimization opportunities
-            - Detailed failure analysis for debugging support
-        
-        Note:
-            This method is the preferred approach for processing large
-            document collections due to its optimized batch handling and
-            robust error recovery mechanisms.
         """
         if not texts:
             return []
@@ -296,91 +226,23 @@ class EmbeddingService:
         return truncated
     
     def calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
-        """Calculate cosine similarity between two semantic embedding vectors.
-        
-        This method computes the cosine similarity score between two embedding
-        vectors, providing a measure of semantic relatedness between the original
-        texts. The calculation is optimized for high-dimensional vectors and
-        provides reliable similarity metrics for document comparison and ranking.
-        
-        Cosine Similarity Mathematics:
-            - Dot product calculation for vector alignment measurement
-            - Magnitude normalization for scale-independent comparison
-            - Result range: -1 (opposite) to 1 (identical semantic meaning)
-            - Zero handling for degenerate vectors
-        
-        Semantic Interpretation:
-            - 0.9 - 1.0: Nearly identical semantic meaning
-            - 0.7 - 0.9: High semantic similarity
-            - 0.5 - 0.7: Moderate semantic relatedness
-            - 0.3 - 0.5: Low semantic similarity
-            - 0.0 - 0.3: Minimal semantic relationship
-        
-        Computational Optimization:
-            - Efficient dot product calculation using list comprehension
-            - Optimized magnitude calculation with squared components
-            - Early termination for zero-magnitude vectors
-            - Memory-efficient processing for large vectors
+        """Calculate cosine similarity between two embedding vectors.
         
         Args:
-            embedding1 (List[float]): First embedding vector for comparison.
-                Must be a valid 1536-dimensional float vector from
-                OpenAI Ada-002 model or compatible embedding service.
-            embedding2 (List[float]): Second embedding vector for comparison.
-                Must have identical dimensions to the first vector
-                for valid similarity calculation.
+            embedding1 (List[float]): First embedding vector.
+            embedding2 (List[float]): Second embedding vector.
         
         Returns:
-            float: Cosine similarity score between -1.0 and 1.0, where:
-                - 1.0 indicates identical semantic meaning
-                - 0.0 indicates no semantic relationship
-                - -1.0 indicates opposite semantic meaning
-                - Values closer to 1.0 suggest higher semantic similarity
+            float: Cosine similarity score between -1.0 and 1.0, where
+                1.0 indicates identical meaning and 0.0 indicates no relationship.
         
         Raises:
-            ValueError: When embedding vectors have mismatched dimensions,
-                are empty, or contain invalid float values.
-            TypeError: When input vectors are not lists of float values
-                or contain non-numeric elements.
+            ValueError: When embedding dimensions don't match.
         
         Example:
             ```python
-            # Compare contract clause with payout description
-            contract_emb = embedding_service.generate_embedding(
-                "Commission rate: 15% of gross order value"
-            )
-            payout_emb = embedding_service.generate_embedding(
-                "Commission charged: $292.50 on order total $1,950.00"
-            )
-            
-            similarity = embedding_service.calculate_similarity(contract_emb, payout_emb)
-            
-            # Interpret similarity score
-            if similarity > 0.8:
-                print("High semantic similarity - likely related content")
-            elif similarity > 0.5:
-                print("Moderate similarity - potentially related")
-            else:
-                print("Low similarity - different semantic content")
+            similarity = service.calculate_similarity(emb1, emb2)
             ```
-        
-        Use Cases:
-            - Document similarity ranking for retrieval systems
-            - Contract clause matching with payout descriptions
-            - Duplicate content detection in document collections
-            - Semantic clustering for document organization
-            - Context relevance scoring for RAG systems
-        
-        Performance:
-            - O(n) time complexity where n is vector dimension
-            - Constant memory usage regardless of vector size
-            - Optimized for repeated similarity calculations
-            - Suitable for real-time document comparison
-        
-        Note:
-            This method assumes normalized embedding vectors from OpenAI's
-            Ada-002 model. For embeddings from other sources, ensure
-            compatibility and proper normalization before comparison.
         """
         if not embedding1 or not embedding2:
             return 0.0
