@@ -1,5 +1,89 @@
-"""
-Streamlit UI for Contract Intelligence Assistant.
+"""Advanced Streamlit interface for Contract Intelligence Assistant platform.
+
+This module provides a comprehensive web-based user interface for the Contract
+Intelligence Assistant, enabling restaurant partners and financial analysts to
+interact with sophisticated AI-powered contract analysis and discrepancy detection
+capabilities. The interface is built with Streamlit for rapid deployment and
+intuitive user experience.
+
+The application serves as the primary client interface for the Financial Analyst RAG
+system, providing seamless access to document upload, processing, analysis, and
+reporting capabilities. It implements modern UI patterns with responsive design,
+real-time status monitoring, and comprehensive error handling for production use.
+
+Key Features:
+    - Document upload and processing interface for contracts and payout reports
+    - Real-time API health monitoring and status indicators
+    - Interactive query interface with natural language processing
+    - Automatic executive summary generation for uploaded documents
+    - Comprehensive financial analysis with detailed and concise reporting modes
+    - Session state management for user experience continuity
+    - Responsive design with multi-column layouts for optimal usability
+
+User Interface Components:
+    - File upload widgets for PDF and text document processing
+    - Query interface with customizable analysis parameters
+    - Real-time status monitoring and health checks
+    - Interactive results display with formatted analysis output
+    - Configuration panels for user preferences and options
+    - Error handling with user-friendly messaging
+
+Document Processing Workflow:
+    1. Document upload validation and format checking
+    2. Automatic processing and indexing via API calls
+    3. Optional executive summary generation
+    4. Document availability validation for analysis
+    5. Interactive query processing with real-time feedback
+
+Analysis Capabilities:
+    - Contract-to-payout discrepancy analysis
+    - Commission rate variance calculations
+    - Service fee validation and explanations
+    - Multi-document comparative analysis
+    - Executive summary generation
+    - Detailed financial reporting with calculations
+
+Session Management:
+    - Upload tracking and document session management
+    - Query history and context preservation
+    - User preference persistence across sessions
+    - Error state handling and recovery
+
+Technical Features:
+    - Streamlit framework for rapid web application development
+    - RESTful API integration for backend service communication
+    - Real-time health monitoring and status reporting
+    - Responsive layout design for desktop and mobile compatibility
+    - Session state management for user experience optimization
+
+Example Usage:
+    The application provides an intuitive workflow:
+    1. Upload restaurant partnership contract (PDF/TXT)
+    2. Upload corresponding payout report (PDF/TXT)
+    3. Ask natural language questions about discrepancies
+    4. Receive detailed AI-powered financial analysis
+    5. Generate executive summaries for stakeholder reporting
+
+Integration Points:
+    - FastAPI backend for document processing and analysis
+    - Financial Analyst RAG system for AI-powered insights
+    - OpenSearch for document storage and retrieval
+    - File upload and session management systems
+
+Dependencies:
+    - streamlit: Modern web application framework
+    - requests: HTTP client for API communication
+    - config: Application configuration management
+    - logging: Comprehensive operation monitoring
+
+Note:
+    This interface is designed for production use with enterprise-grade
+    error handling, security considerations, and user experience optimization.
+    It serves as the primary client interface for the Contract Intelligence
+    Assistant platform.
+
+Version:
+    2.0.0 - Enhanced with comprehensive analysis features and improved UX
 """
 import streamlit as st
 import requests
