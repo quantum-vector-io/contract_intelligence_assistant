@@ -1,75 +1,20 @@
-"""Advanced OpenAI embedding service for semantic document processing and vector operations.
+"""OpenAI embedding service for document vectorization and semantic search.
 
-This module provides a comprehensive embedding service built on OpenAI's state-of-the-art
-text-embedding-ada-002 model, specifically optimized for financial document analysis
-and restaurant partnership contract processing. It handles large-scale document
-vectorization with intelligent batching, rate limiting, and error handling.
+Provides text embedding generation using OpenAI's Ada-002 model with batch processing,
+rate limiting, and similarity calculations for financial document analysis.
 
-The service transforms textual content into high-dimensional vector representations
-that enable semantic search, document similarity analysis, and context-aware retrieval
-for the RAG (Retrieval-Augmented Generation) pipeline. It supports both single
-document and batch processing modes with production-grade reliability.
-
-Key Capabilities:
-    - High-quality text embedding generation using OpenAI's Ada-002 model
-    - Intelligent batch processing with configurable size and rate limiting
-    - Automatic text truncation with word boundary preservation
-    - Cosine similarity calculations for semantic comparison
-    - Robust error handling and connection validation
-    - Memory-efficient processing for large document collections
-
-Technical Specifications:
-    - Model: text-embedding-ada-002 (1536 dimensions)
-    - Token Limit: 8,191 tokens per input
-    - Batch Size: Configurable (default 100 documents)
-    - Rate Limiting: Automatic delays between API calls
-    - Similarity Metric: Cosine similarity for vector comparison
-
-Integration Points:
-    - Document processing pipeline for chunk vectorization
-    - OpenSearch indexing for semantic document storage
-    - RAG service for context retrieval and similarity matching
-    - Financial analysis workflows for document comparison
+Key Features:
+    - Text-to-vector embedding generation
+    - Batch processing with rate limiting
+    - Cosine similarity calculations
+    - Document chunk enhancement
 
 Example:
     ```python
-    # Initialize embedding service
-    embedding_service = EmbeddingService()
-    
-    # Generate single embedding
-    embedding = embedding_service.generate_embedding("Contract terms and conditions")
-    
-    # Process document chunks in batch
-    chunks_with_embeddings = embedding_service.add_embeddings_to_chunks(document_chunks)
-    
-    # Calculate semantic similarity
-    similarity = embedding_service.calculate_similarity(embedding1, embedding2)
+    service = EmbeddingService()
+    embedding = service.generate_embedding("Contract terms")
+    similarity = service.calculate_similarity(emb1, emb2)
     ```
-
-Performance Considerations:
-    - Batch processing reduces API overhead and improves throughput
-    - Rate limiting prevents API quota exhaustion
-    - Text truncation ensures compatibility with model limits
-    - Connection testing validates service availability before processing
-
-Error Handling:
-    - Graceful degradation for failed embedding generation
-    - Comprehensive logging for debugging and monitoring
-    - Validation of input parameters and API responses
-    - Recovery mechanisms for batch processing failures
-
-Dependencies:
-    - openai: Official OpenAI Python SDK for API access
-    - asyncio: Asynchronous processing capabilities
-    - logging: Comprehensive operation monitoring
-
-Note:
-    This service requires a valid OpenAI API key with sufficient quota for
-    embedding generation. Ensure proper configuration before use in production
-    environments.
-
-Version:
-    2.0.0 - Enhanced with batch processing and production optimizations
 """
 import logging
 from typing import List, Dict, Any, Optional
@@ -84,142 +29,32 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-    """Production-grade embedding service for semantic document processing and analysis.
+    """OpenAI embedding service for document vectorization and semantic analysis.
     
-    This service provides enterprise-level text embedding capabilities using OpenAI's
-    advanced Ada-002 model, specifically optimized for financial document analysis
-    and restaurant partnership contract processing. It implements intelligent batching,
-    rate limiting, and comprehensive error handling for large-scale document processing.
+    Generates text embeddings using Ada-002 model with batch processing, rate limiting,
+    and similarity calculations for financial document analysis.
     
-    The service transforms textual content into high-dimensional semantic vectors that
-    enable sophisticated document retrieval, similarity analysis, and context-aware
-    search capabilities. It serves as the foundation for the RAG pipeline's semantic
-    understanding and document matching algorithms.
-    
-    Key Features:
-        - OpenAI Ada-002 model integration for superior embedding quality
-        - Intelligent batch processing with configurable size limits
-        - Automatic rate limiting to prevent API quota exhaustion
-        - Smart text truncation with word boundary preservation
-        - Comprehensive error handling and recovery mechanisms
-        - Connection validation and health monitoring
-        - Cosine similarity calculations for semantic comparison
-    
-    Processing Capabilities:
-        - Single document embedding generation
-        - Batch processing for large document collections
-        - Automatic chunk enhancement with embedding metadata
-        - Memory-efficient processing for production workloads
-        - Configurable processing parameters for optimization
-    
-    Technical Configuration:
-        - Model: text-embedding-ada-002 (1536-dimensional vectors)
-        - Token Limit: 8,191 tokens per input (auto-truncation)
-        - Default Batch Size: 100 documents per API call
-        - Rate Limit Delay: 1.0 seconds between batches
-        - Similarity Metric: Cosine similarity for vector comparison
+    Features:
+        - Single and batch embedding generation
+        - Automatic text truncation and rate limiting
+        - Cosine similarity calculations
+        - Document chunk enhancement
     
     Attributes:
-        client (OpenAI): Configured OpenAI API client for embedding requests.
-        model (str): OpenAI embedding model identifier (ada-002).
-        max_tokens (int): Maximum token limit for input text processing.
-        batch_size (int): Number of documents processed per API batch.
-        rate_limit_delay (float): Delay in seconds between API calls.
-    
-    Example:
-        ```python
-        # Initialize service with automatic configuration
-        embedding_service = EmbeddingService()
-        
-        # Generate embedding for single text
-        embedding = embedding_service.generate_embedding(
-            "Commission rate: 15% of gross order value"
-        )
-        
-        # Process document chunks with embeddings
-        enhanced_chunks = embedding_service.add_embeddings_to_chunks([
-            {"content": "Contract terms...", "chunk_id": "1"},
-            {"content": "Payout details...", "chunk_id": "2"}
-        ])
-        
-        # Calculate semantic similarity
-        similarity_score = embedding_service.calculate_similarity(
-            embedding1, embedding2
-        )
-        ```
-    
-    Integration:
-        This service integrates with:
-        - Document processing pipeline for chunk vectorization
-        - OpenSearch service for semantic document storage
-        - RAG service for context retrieval and similarity matching
-        - Financial analysis workflows for document comparison
-    
-    Raises:
-        ValueError: When OpenAI API key is not configured or invalid input provided.
-        ConnectionError: When OpenAI API is unavailable or rate limited.
-        RuntimeError: When embedding generation fails due to service issues.
-    
-    Note:
-        Requires a valid OpenAI API key with sufficient quota for embedding
-        generation. The service automatically handles rate limiting and error
-        recovery to ensure reliable operation in production environments.
+        client: OpenAI API client
+        model: Ada-002 embedding model
+        max_tokens: Token limit (8,191)
+        batch_size: Documents per batch (100)
+        rate_limit_delay: Delay between batches (1.0s)
     """
     
     def __init__(self):
-        """Initialize the embedding service with OpenAI integration and production configurations.
+        """Initialize embedding service with OpenAI client and configuration.
         
-        Sets up the complete embedding service infrastructure including OpenAI client
-        initialization, model configuration, and production-optimized parameters for
-        reliable large-scale document processing. The initialization includes
-        comprehensive validation and configuration setup.
-        
-        Configuration Setup:
-            - OpenAI API client with authenticated access
-            - Ada-002 model selection for optimal embedding quality
-            - Token limits and batch size optimization
-            - Rate limiting parameters for API compliance
-            - Error handling and logging infrastructure
-        
-        Production Parameters:
-            - Model: text-embedding-ada-002 for superior semantic understanding
-            - Token Limit: 8,191 tokens (maximum for Ada-002 model)
-            - Batch Size: 100 documents per API call for efficiency
-            - Rate Limit: 1.0 second delay between batches
-            - Auto-truncation: Smart text truncation with word boundaries
-        
-        Security Validation:
-            - OpenAI API key presence verification
-            - Environment variable configuration check
-            - Service connectivity validation preparation
+        Sets up Ada-002 model, batch processing, and rate limiting parameters.
         
         Raises:
-            ValueError: When OpenAI API key is not configured in environment
-                variables or settings. Includes detailed error message for
-                troubleshooting.
-            ImportError: When OpenAI SDK is not properly installed or
-                incompatible version is detected.
-            ConnectionError: When initial OpenAI service connection
-                validation fails during client setup.
-        
-        Environment Requirements:
-            - OPENAI_API_KEY: Valid OpenAI API key with embedding permissions
-            - Network connectivity to OpenAI API endpoints
-            - Sufficient API quota for planned embedding operations
-        
-        Example:
-            ```python
-            # Automatic initialization with environment configuration
-            embedding_service = EmbeddingService()
-            
-            # Service is ready for embedding generation
-            embedding = embedding_service.generate_embedding("Sample text")
-            ```
-        
-        Note:
-            This initialization method assumes that the OpenAI API key is
-            properly configured in the environment. The service will validate
-            connectivity and permissions during the first embedding operation.
+            ValueError: When OpenAI API key is not configured.
         """
         if not settings.openai_api_key:
             raise ValueError("OpenAI API key is required. Please set OPENAI_API_KEY in your environment.")
@@ -231,81 +66,20 @@ class EmbeddingService:
         self.rate_limit_delay = 1.0  # Delay between API calls to avoid rate limits
     
     def generate_embedding(self, text: str) -> List[float]:
-        """Generate high-quality semantic embedding vector for individual text input.
+        """Generate semantic embedding vector for text using Ada-002 model.
         
-        This method transforms textual content into a high-dimensional vector
-        representation using OpenAI's advanced Ada-002 embedding model. The
-        resulting embeddings capture semantic meaning and enable sophisticated
-        similarity comparisons and document retrieval operations.
-        
-        Processing Pipeline:
-            1. Input validation and empty text checking
-            2. Intelligent text truncation with word boundary preservation
-            3. OpenAI API embedding generation with error handling
-            4. Vector validation and dimension verification
-            5. Comprehensive logging for monitoring and debugging
-        
-        Text Processing:
-            - Automatic truncation for texts exceeding token limits
-            - Word boundary preservation to maintain semantic integrity
-            - Empty text validation to prevent API errors
-            - Character encoding compatibility checks
-        
-        Quality Assurance:
-            - Embedding dimension validation (1536 for Ada-002)
-            - Vector completeness verification
-            - Error handling with descriptive messages
-            - Performance logging for optimization
+        Transforms text into 1536-dimensional vector with automatic truncation
+        and validation.
         
         Args:
-            text (str): Input text content for embedding generation.
-                Can be contract clauses, payout descriptions, or any
-                textual content requiring semantic analysis. Must be
-                non-empty and contain meaningful content.
+            text: Input text content for embedding generation.
         
         Returns:
-            List[float]: High-dimensional embedding vector (1536 dimensions)
-                representing the semantic meaning of the input text.
-                Values are normalized floats suitable for cosine
-                similarity calculations and vector storage.
+            1536-dimensional embedding vector as list of floats.
         
         Raises:
-            ValueError: When input text is empty, None, or contains only
-                whitespace. Also raised when embedding generation fails
-                due to content or API issues.
-            ConnectionError: When OpenAI API is unavailable, rate limited,
-                or returns service errors.
-            TokenLimitError: When text cannot be processed due to extreme
-                length or formatting issues.
-        
-        Example:
-            ```python
-            # Generate embedding for contract clause
-            clause_embedding = embedding_service.generate_embedding(
-                "Commission rate shall be 15% of gross order value excluding taxes"
-            )
-            
-            # Generate embedding for payout description
-            payout_embedding = embedding_service.generate_embedding(
-                "Weekly payout: $2,925.00 after service fees and penalties"
-            )
-            
-            # Calculate semantic similarity
-            similarity = embedding_service.calculate_similarity(
-                clause_embedding, payout_embedding
-            )
-            ```
-        
-        Performance:
-            - Single API call for individual text processing
-            - Automatic caching considerations for repeated content
-            - Optimized for real-time embedding generation
-            - Memory efficient for production workloads
-        
-        Note:
-            For batch processing of multiple texts, use generate_embeddings_batch()
-            method which provides superior performance and rate limit handling
-            for large document collections.
+            ValueError: When text is empty or embedding generation fails.
+            ConnectionError: When OpenAI API is unavailable.
         """
         if not text.strip():
             raise ValueError("Text cannot be empty")
