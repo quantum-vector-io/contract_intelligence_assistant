@@ -38,8 +38,14 @@ page = st.sidebar.radio(
     help="Choose between document analysis and dashboard views"
 )
 
+# Debug: Show current selection
+st.sidebar.info(f"Currently viewing: {page}")
+
 if page == "📊 Analytics Dashboard":
-    # Dashboard page - let render_dashboard handle its own titles
+    # Dashboard page
+    st.header("📊 Analytics Dashboard")
+    st.markdown("*Real-time analytics for contract intelligence and financial analysis*")
+    
     try:
         from src.ui.dashboard import render_dashboard
         render_dashboard()
@@ -53,7 +59,7 @@ if page == "📊 Analytics Dashboard":
 
 else:
     # Document Analysis page  
-    st.header("Document Analysis")
+    st.header("🔍 Document Analysis")
     
     # API Status check
     st.sidebar.markdown("---")
@@ -99,7 +105,9 @@ else:
         help="When enabled, automatically generates an executive summary for each uploaded file"
     )
 
-    # File upload section
+    # Main content
+    st.markdown("## 📄 Upload Documents")
+
     col1, col2 = st.columns(2)
 
     with col1:

@@ -19,7 +19,7 @@ import logging
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from src.core.config import settings
-from src.api.routers import opensearch, documents, financial_analysis
+from src.api.routers import opensearch, documents, financial_analysis, dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ app.add_middleware(
 app.include_router(opensearch.router)
 app.include_router(documents.router)
 app.include_router(financial_analysis.router)
+app.include_router(dashboard.router)
 
 @app.get("/")
 async def root():
