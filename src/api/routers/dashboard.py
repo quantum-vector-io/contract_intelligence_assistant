@@ -29,9 +29,10 @@ router = APIRouter(
     }
 )
 
-# Initialize services
-opensearch_service = OpenSearchService()
-dashboard_service = DashboardService(opensearch_service)
+def get_dashboard_service() -> DashboardService:
+    """Get dashboard service instance with proper initialization."""
+    opensearch_service = OpenSearchService()
+    return DashboardService(opensearch_service)
 
 
 @router.get("/", summary="Dashboard Status")
@@ -70,6 +71,7 @@ async def get_dashboard_overview():
               and recent activity summary.
     """
     try:
+        dashboard_service = get_dashboard_service()
         overview_data = await dashboard_service.get_document_overview()
         
         if "error" in overview_data:
@@ -108,6 +110,7 @@ async def get_document_analytics(
         Dict: Document analytics including counts, types, and activity.
     """
     try:
+        dashboard_service = get_dashboard_service()
         document_data = await dashboard_service.get_document_overview()
         
         if "error" in document_data:
@@ -166,6 +169,7 @@ async def get_financial_metrics():
               statistics, and commission analysis.
     """
     try:
+        dashboard_service = get_dashboard_service()
         financial_data = await dashboard_service.get_financial_metrics()
         
         if "error" in financial_data:
@@ -198,6 +202,7 @@ async def get_system_health():
               and performance metrics.
     """
     try:
+        dashboard_service = get_dashboard_service()
         health_data = await dashboard_service.get_system_health()
         
         if "error" in health_data:
@@ -234,6 +239,7 @@ async def get_query_analytics():
               and success rates.
     """
     try:
+        dashboard_service = get_dashboard_service()
         analytics_data = await dashboard_service.get_query_analytics()
         
         return JSONResponse(
@@ -261,6 +267,7 @@ async def get_comprehensive_dashboard_data():
               system health, and analytics.
     """
     try:
+        dashboard_service = get_dashboard_service()
         comprehensive_data = await dashboard_service.get_comprehensive_dashboard_data()
         
         if "error" in comprehensive_data:
@@ -292,6 +299,8 @@ async def get_quick_stats():
         Dict: Quick stats including total documents, partners, and health status.
     """
     try:
+        dashboard_service = get_dashboard_service()
+        
         # Get basic counts quickly
         total_docs = dashboard_service.opensearch_service.get_document_count()
         
@@ -331,6 +340,8 @@ async def refresh_dashboard_cache():
         Dict: Cache refresh status and new data timestamps.
     """
     try:
+        dashboard_service = get_dashboard_service()
+        
         # Clear all cache entries
         dashboard_service._cache.clear()
         
