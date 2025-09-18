@@ -75,40 +75,272 @@ def init_dashboard_styling():
     # Custom CSS for better styling
     st.markdown("""
     <style>
+    /* Main container styling */
     .main > div {
         padding-top: 2rem;
     }
+    
+    /* Metric cards styling */
     .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #1f77b4;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        color: white;
+        transition: transform 0.3s ease;
     }
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Health indicators */
     .health-indicator {
         display: inline-block;
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
-        margin-right: 8px;
+        margin-right: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-    .health-healthy { background-color: #28a745; }
-    .health-degraded { background-color: #ffc107; }
-    .health-unhealthy { background-color: #dc3545; }
+    .health-healthy { 
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+    }
+    .health-degraded { 
+        background: linear-gradient(135deg, #FF9800, #F57C00);
+        box-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
+    }
+    .health-unhealthy { 
+        background: linear-gradient(135deg, #F44336, #D32F2F);
+        box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
+    }
+    
+    /* Revolutionary Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 2px;
+        gap: 8px;
+        background: transparent;
+        padding: 10px 0;
     }
+    
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
+        height: 70px;
         white-space: pre-wrap;
-        background-color: #f0f2f6;
-        border-radius: 4px 4px 0px 0px;
-        gap: 1px;
-        padding-top: 10px;
-        padding-bottom: 10px;
+        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+        border: 2px solid transparent;
+        border-radius: 16px;
+        padding: 15px 25px;
+        font-weight: 600;
+        font-size: 16px;
+        color: #495057;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 
+            0 4px 6px rgba(0, 0, 0, 0.07),
+            0 1px 3px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
     }
+    
+    /* Tab hover effect */
+    .stTabs [data-baseweb="tab"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 8px 25px rgba(0, 0, 0, 0.15),
+            0 4px 6px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(145deg, #ffffff, #f8f9fa);
+        border: 2px solid #dee2e6;
+    }
+    
+    /* Active tab styling */
     .stTabs [aria-selected="true"] {
-        background-color: #1f77b4;
-        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: 2px solid #5a67d8 !important;
+        transform: translateY(-3px);
+        box-shadow: 
+            0 12px 40px rgba(102, 126, 234, 0.4),
+            0 8px 16px rgba(102, 126, 234, 0.2);
+        z-index: 10;
+    }
+    
+    /* Active tab hover effect - ВАЖЛИВО: перевизначаємо hover для активної табки */
+    .stTabs [aria-selected="true"]:hover {
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
+        color: white !important;
+        border: 2px solid #4c51bf !important;
+        transform: translateY(-4px);
+        box-shadow: 
+            0 16px 50px rgba(102, 126, 234, 0.5),
+            0 12px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Active tab before pseudo-element for glow effect */
+    .stTabs [aria-selected="true"]::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+        border-radius: 14px;
+        pointer-events: none;
+    }
+    
+    /* Забезпечуємо що текст в активній табці завжди білий */
+    .stTabs [aria-selected="true"] * {
+        color: white !important;
+    }
+    
+    /* Забезпечуємо що текст в активній табці при hover залишається білий */
+    .stTabs [aria-selected="true"]:hover * {
+        color: white !important;
+    }
+    
+    /* Tab content container */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding: 30px 0;
+        background: transparent;
+    }
+    
+    /* Custom styling for the emoji icons in tabs */
+    .tab-icon {
+        font-size: 24px;
+        margin-right: 8px;
+        display: inline-block;
+        line-height: 1;
+    }
+    
+    /* Streamlit metrics enhancement */
+    [data-testid="metric-container"] {
+        background: linear-gradient(145deg, #ffffff, #f8f9fa);
+        border: 1px solid #e9ecef;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        transition: transform 0.2s ease;
+    }
+    
+    [data-testid="metric-container"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Dashboard title styling */
+    .dashboard-title {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 800;
+        font-size: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    
+    /* Animation for tab transitions */
+    @keyframes tabGlow {
+        0% { box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4); }
+        50% { box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6); }
+        100% { box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4); }
+    }
+    
+    .stTabs [aria-selected="true"] {
+        animation: tabGlow 2s ease-in-out infinite;
+    }
+    
+    /* Enhanced container styling */
+    .element-container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Plotly chart containers */
+    .js-plotly-plot {
+        border-radius: 12px !important;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07) !important;
+    }
+    
+    /* Dataframe styling */
+    .dataframe {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07) !important;
+    }
+    
+    /* Info boxes styling */
+    .stAlert {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    }
+    
+    /* Success styling */
+    .stSuccess {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        border-left: 4px solid #28a745;
+    }
+    
+    /* Info styling */
+    .stInfo {
+        background: linear-gradient(135deg, #cce7ff, #b3d9ff);
+        border-left: 4px solid #17a2b8;
+    }
+    
+    /* Error styling */
+    .stError {
+        background: linear-gradient(135deg, #f8d7da, #f1aeb5);
+        border-left: 4px solid #dc3545;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+        border-radius: 12px !important;
+        border: 1px solid #dee2e6;
+    }
+    
+    /* Додаткові стилі для табів - щоб текст завжди був видимий */
+    .stTabs [data-baseweb="tab"] p {
+        margin: 0 !important;
+        line-height: 1.2 !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] strong {
+        font-size: 14px !important;
+        display: block !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] em {
+        font-size: 12px !important;
+        opacity: 0.8 !important;
+        font-style: normal !important;
+    }
+    
+    /* Неактивні таби - темний текст */
+    .stTabs [aria-selected="false"] {
+        color: #495057 !important;
+    }
+    
+    .stTabs [aria-selected="false"] * {
+        color: #495057 !important;
+    }
+    
+    /* При hover на неактивні таби */
+    .stTabs [aria-selected="false"]:hover {
+        color: #212529 !important;
+    }
+    
+    .stTabs [aria-selected="false"]:hover * {
+        color: #212529 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -174,7 +406,7 @@ def create_metrics_row(overview_data: Dict[str, Any]):
 
 def create_document_analytics_tab(overview_data: Dict[str, Any]):
     """Create document analytics visualizations."""
-    st.subheader("📄 Document Analytics")
+    # Removed redundant st.subheader since we have gradient header now
     
     col1, col2 = st.columns(2)
     
@@ -252,7 +484,7 @@ def create_document_analytics_tab(overview_data: Dict[str, Any]):
 
 def create_financial_analytics_tab(financial_data: Dict[str, Any]):
     """Create financial analytics visualizations."""
-    st.subheader("💰 Financial Analytics")
+    # Removed redundant st.subheader since we have gradient header now
     
     # Financial document metrics
     financial_docs = financial_data.get("financial_documents", {})
@@ -335,7 +567,7 @@ def create_financial_analytics_tab(financial_data: Dict[str, Any]):
 
 def create_system_health_tab(health_data: Dict[str, Any]):
     """Create system health monitoring visualizations."""
-    st.subheader("🏥 System Health & Performance")
+    # Removed redundant st.subheader since we have gradient header now
     
     # Overall health status
     overall_status = health_data.get("overall_status", "unknown")
@@ -404,7 +636,7 @@ def create_system_health_tab(health_data: Dict[str, Any]):
 
 def create_query_analytics_tab(query_data: Dict[str, Any]):
     """Create query analytics visualizations."""
-    st.subheader("🔍 Query Analytics")
+    # Removed redundant st.subheader since we have gradient header now
     
     # Query metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -494,9 +726,18 @@ def render_dashboard():
     """Render the dashboard as a component (not a standalone app).""" 
     init_dashboard_styling()
     
-    # Dashboard title (smaller since it's in a tab)
-    st.subheader("Dashboard")
-    st.caption("Real-time analytics for contract intelligence and financial analysis")
+    # Enhanced dashboard title with gradient styling
+    st.markdown("""
+    <div class="dashboard-title">
+        📊 Contract Intelligence Dashboard
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 2rem; font-size: 1.2rem; color: #6c757d;">
+        🚀 Real-time analytics for contract intelligence and financial analysis
+    </div>
+    """, unsafe_allow_html=True)
     
     # Initialize API client
     api_client = DashboardAPI()
@@ -542,24 +783,52 @@ def render_dashboard():
     
     st.divider()
     
-    # Create tabs for different analytics views
+    # Create tabs for different analytics views with enhanced styling
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📄 Documents", 
-        "💰 Financial", 
-        "🏥 System Health", 
-        "🔍 Query Analytics"
+        "📄\n**Documents**\n*Analytics*", 
+        "💰\n**Financial**\n*Metrics*", 
+        "🏥\n**System Health**\n*Monitoring*", 
+        "🔍\n**Query Analytics**\n*Performance*"
     ])
     
     with tab1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+            <h3 style="margin: 0; color: white;">📄 Document Analytics</h3>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Comprehensive analysis of your document portfolio</p>
+        </div>
+        """, unsafe_allow_html=True)
         create_document_analytics_tab(overview_data)
     
     with tab2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
+                    padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+            <h3 style="margin: 0; color: white;">💰 Financial Metrics</h3>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Deep insights into financial performance and discrepancies</p>
+        </div>
+        """, unsafe_allow_html=True)
         create_financial_analytics_tab(financial_data)
     
     with tab3:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+            <h3 style="margin: 0; color: white;">🏥 System Health</h3>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Real-time monitoring of system performance and stability</p>
+        </div>
+        """, unsafe_allow_html=True)
         create_system_health_tab(health_data)
     
     with tab4:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); 
+                    padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+            <h3 style="margin: 0; color: white;">🔍 Query Analytics</h3>
+            <p style="margin: 5px 0 0 0; opacity: 0.9;">Performance metrics and usage patterns analysis</p>
+        </div>
+        """, unsafe_allow_html=True)
         create_query_analytics_tab(query_data)
     
     # Footer with last update info
