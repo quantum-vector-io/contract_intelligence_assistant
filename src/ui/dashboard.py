@@ -308,7 +308,7 @@ def init_dashboard_styling():
         border: 1px solid #dee2e6;
     }
     
-    /* Додаткові стилі для табів - щоб текст завжди був видимий */
+    /* Enhanced tab text visibility styles */
     .stTabs [data-baseweb="tab"] p {
         margin: 0 !important;
         line-height: 1.2 !important;
