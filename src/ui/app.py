@@ -39,17 +39,50 @@ page = st.sidebar.radio(
 )
 
 if page == "📊 Analytics Dashboard":
-    # Dashboard page - let render_dashboard handle its own titles
+    # Revolutionary dashboard with holographic design
     try:
-        from src.ui.dashboard import render_dashboard
-        render_dashboard()
+        # Clear any existing error state
+        if 'dashboard_error' in st.session_state:
+            del st.session_state.dashboard_error
+        
+        from src.ui.dashboard_revolutionary import render_revolutionary_dashboard
+        render_revolutionary_dashboard()
+        
     except ImportError as e:
         st.error(f"Dashboard module not available: {e}")
         st.info("Dashboard functionality requires additional dependencies.")
         st.code("pip install plotly==5.17.0")
+        st.session_state.dashboard_error = f"ImportError: {e}"
+        
     except Exception as e:
         st.error(f"Dashboard error: {e}")
-        st.code(str(e))
+        st.code(f"Error details: {str(e)}")
+        
+        # Show stack trace for debugging
+        import traceback
+        st.code(f"Stack trace:\n{traceback.format_exc()}")
+        st.session_state.dashboard_error = f"Exception: {e}"
+        
+        # Show dashboard data check
+        st.info("🔍 Debugging Information:")
+        try:
+            import requests
+            response = requests.get("http://localhost:8000/health", timeout=5)
+            st.success(f"✅ API Health: {response.status_code}")
+        except Exception as api_e:
+            st.error(f"❌ API Error: {api_e}")
+        
+        try:
+            import plotly
+            st.success(f"✅ Plotly version: {plotly.__version__}")
+        except Exception as plotly_e:
+            st.error(f"❌ Plotly Error: {plotly_e}")
+            
+        try:
+            import pandas as pd
+            st.success(f"✅ Pandas version: {pd.__version__}")
+        except Exception as pandas_e:
+            st.error(f"❌ Pandas Error: {pandas_e}")
 
 else:
     # Document Analysis page  
