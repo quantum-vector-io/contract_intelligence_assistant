@@ -16,14 +16,22 @@ import tempfile
 import os
 
 from src.services.document_indexing_service import DocumentIndexingService, index_sample_documents
+from src.services.opensearch_service import OpenSearchService
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
-# Initialize document indexing service
-indexing_service = DocumentIndexingService()
+def get_indexing_service() -> DocumentIndexingService:
+    """Lazily create the indexing service to avoid import-time failures.
+
+    Important: Creating DocumentIndexingService eagerly will instantiate
+    EmbeddingService which requires OPENAI_API_KEY. Delaying instantiation
+    lets the API boot even when the key is not configured, and only the
+    endpoints that need embeddings will fail gracefully at call time.
+    """
+    return DocumentIndexingService()
 
 
 class TextIndexRequest(BaseModel):
@@ -112,6 +120,7 @@ async def upload_and_index_file(
             }
             
             # Index the file
+            indexing_service = get_indexing_service()
             result = indexing_service.index_file(temp_file_path, metadata)
             
             return {
@@ -152,6 +161,7 @@ async def index_text(request: TextIndexRequest) -> Dict[str, Any]:
             metadata.update(request.metadata)
         
         # Index the text
+        indexing_service = get_indexing_service()
         result = indexing_service.index_text(request.text, metadata)
         
         return {
@@ -174,10 +184,12 @@ async def search_documents(request: SearchRequest) -> Dict[str, Any]:
     """
     try:
         if request.search_type == "semantic":
+            indexing_service = get_indexing_service()
             results = indexing_service.semantic_search(request.query, request.size)
         elif request.search_type == "text":
-            # Use the basic OpenSearch service for text-only search
-            opensearch_results = indexing_service.opensearch_service.search_documents(
+            # Use the basic OpenSearch service for text-only search without requiring OpenAI
+            opensearch_service = OpenSearchService()
+            opensearch_results = opensearch_service.search_documents(
                 request.query, request.size
             )
             results = {
@@ -215,8 +227,41 @@ async def get_indexing_statistics() -> Dict[str, Any]:
     Get statistics about indexed documents.
     """
     try:
-        stats = indexing_service.get_indexing_stats()
-        return stats
+        # Avoid instantiating DocumentIndexingService here to prevent requiring OPENAI_API_KEY
+        # Compute stats directly via OpenSearchService
+        opensearch_service = OpenSearchService()
+        try:
+            doc_count = opensearch_service.get_document_count()
+            health = opensearch_service.health_check()
+            search_body = {
+                "size": 0,
+                "aggs": {
+                    "document_types": {"terms": {"field": "document_type", "size": 10}},
+                    "partners": {"terms": {"field": "partner_name", "size": 10}},
+                    "unique_chunks": {"terms": {"field": "chunk_id", "size": 1000}}
+                }
+            }
+            response = opensearch_service.client.search(
+                index=opensearch_service.index_name,
+                body=search_body
+            )
+            return {
+                "status": "success",
+                "total_chunks": doc_count,
+                "unique_documents": len(response["aggregations"]["unique_chunks"]["buckets"]),
+                "document_types": [
+                    {"type": b["key"], "count": b["doc_count"]}
+                    for b in response["aggregations"]["document_types"]["buckets"]
+                ],
+                "partners": [
+                    {"partner": b["key"], "count": b["doc_count"]}
+                    for b in response["aggregations"]["partners"]["buckets"]
+                ],
+                "cluster_health": health.get("status", "unknown")
+            }
+        except Exception as e:
+            logger.error(f"Failed to compute indexing stats: {e}")
+            return {"status": "error", "error": str(e)}
         
     except Exception as e:
         logger.error(f"Failed to get indexing stats: {e}")

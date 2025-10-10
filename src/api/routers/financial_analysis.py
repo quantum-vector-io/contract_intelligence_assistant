@@ -27,8 +27,14 @@ logger = logging.getLogger(__name__)
 # Create router
 router = APIRouter(prefix="/financial-analysis", tags=["Financial Analysis"])
 
-# Initialize RAG chain
-rag_chain = FinancialAnalystRAGChain()
+def get_rag_chain() -> FinancialAnalystRAGChain:
+    """Lazily create the RAG chain to avoid import-time failures.
+
+    The chain depends on OpenAI credentials. Creating it at module import
+    would crash API startup if OPENAI_API_KEY is missing. Instantiate per call
+    instead so the rest of the API (and /health) can function.
+    """
+    return FinancialAnalystRAGChain()
 
 
 class AnalysisRequest(BaseModel):
@@ -74,6 +80,7 @@ async def analyze_discrepancies(request: AnalysisRequest):
     """
     try:
         # Get partner document summary
+        rag_chain = get_rag_chain()
         summary = rag_chain.get_partner_summary(request.partner_name)
         
         if summary["total_documents"] == 0:
@@ -121,6 +128,7 @@ async def get_partner_summary(partner_name: str):
         HTTPException: If partner not found or service error.
     """
     try:
+        rag_chain = get_rag_chain()
         summary = rag_chain.get_partner_summary(partner_name)
         
         if summary["total_documents"] == 0:
@@ -176,23 +184,22 @@ async def health_check():
     Health check for the Financial Analysis service.
     """
     try:
-        # Test basic RAG chain functionality
-        test_summary = rag_chain.get_partner_summary("Sushi Express")
-        
-        return {
-            "status": "healthy",
-            "service": "Financial Analyst RAG Chain",
-            "features": [
-                "LangChain RAG pipeline",
-                "Financial discrepancy analysis",
-                "Multi-document retrieval",
-                "GPT-4 powered analysis"
-            ],
-            "test_partner_documents": test_summary["total_documents"]
-        }
-        
+        # Attempt to instantiate and run a lightweight check
+        try:
+            rag_chain = get_rag_chain()
+            test_summary = rag_chain.get_partner_summary("Sushi Express")
+            return {
+                "status": "healthy",
+                "service": "Financial Analyst RAG Chain",
+                "features": [
+                    "LangChain RAG pipeline",
+                    "Financial discrepancy analysis",
+                    "Multi-document retrieval",
+                    "GPT-4 powered analysis"
+                ],
+                "test_partner_documents": test_summary["total_documents"]
+            }
+        except Exception as inner:
+            return {"status": "unhealthy", "error": str(inner)}
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+        return {"status": "unhealthy", "error": str(e)}
