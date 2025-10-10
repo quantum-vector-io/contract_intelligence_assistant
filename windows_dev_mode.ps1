@@ -43,7 +43,9 @@ $OPENSEARCH_URL = "http://localhost:9200"
 $OPENSEARCH_DASHBOARD_URL = "http://localhost:5601"
 $BACKEND_URL = "http://localhost:8000"
 $FRONTEND_URL = "http://localhost:8501"
-$HEALTH_ENDPOINT = "$BACKEND_URL/documents/health/embedding"
+# Backend health endpoint (must exist in API)
+# Previously pointed to a non-existent route, causing false negatives
+$HEALTH_ENDPOINT = "$BACKEND_URL/health"
 
 # Function to check if a service is running
 function Test-ServiceHealth {
@@ -196,7 +198,7 @@ if (-not (Wait-ForService -Url $HEALTH_ENDPOINT -ServiceName "FastAPI Backend"))
 Write-Host ""
 
 # 3. Start Streamlit Frontend
-Write-Info "3. Starting Streamlit Frontend..."
+Write-Info "3. Starting Streamlit Frontend with Navigation..."
 try {
     $frontendJob = Start-Job -ScriptBlock {
         param($WorkingDir)

@@ -167,6 +167,13 @@ else:
             help="Search across all previously uploaded documents"
         )
 
+    # Detailed report option
+    st.session_state.generate_detailed_report = st.checkbox(
+        "📊 Generate Detailed Report",
+        value=st.session_state.generate_detailed_report,
+        help="Generate comprehensive analysis with detailed calculations and breakdowns"
+    )
+
     # Ask button
     col_ask1, col_ask2 = st.columns([2, 1])
     with col_ask1:
@@ -176,8 +183,73 @@ else:
 
     if ask_button_clicked:
         if query and (contract_file or payout_file or query_database):
-            st.success("🔄 Processing your question...")
-            st.info("This is a simplified version. Full analysis functionality is available in the complete app.")
+            # Real API call
+            with st.spinner("🔄 Processing your question..."):
+                try:
+                    # Prepare the API request
+                    api_url = f"http://localhost:{settings.api_port}/analyze"
+                    
+                    files = {}
+                    data = {
+                        'question': query,
+                        'query_database': 'true' if query_database else 'false',
+                        'action': 'analyze',
+                        'detailed_report': 'true' if st.session_state.generate_detailed_report else 'false'
+                    }
+                    
+                    # Add files if uploaded
+                    if contract_file is not None:
+                        contract_file.seek(0)
+                        files['contract_file'] = (contract_file.name, contract_file.read(), contract_file.type)
+                        contract_file.seek(0)
+                    
+                    if payout_file is not None:
+                        payout_file.seek(0)
+                        files['payout_file'] = (payout_file.name, payout_file.read(), payout_file.type)
+                        payout_file.seek(0)
+                    
+                    # Make API request
+                    response = requests.post(api_url, files=files, data=data, timeout=120)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        
+                        if result.get('status') == 'success':
+                            st.success("✅ Analysis completed successfully!")
+                            
+                            # Display session info
+                            col_info1, col_info2 = st.columns([3, 1])
+                            with col_info2:
+                                st.markdown("### 📊 Session Info")
+                                if result.get('session_id'):
+                                    st.code(f"ID: {result['session_id']}")
+                                if result.get('contract_indexed'):
+                                    st.success("✅ Contract processed")
+                                if result.get('payout_indexed'):
+                                    st.success("✅ Payout processed")
+                            
+                            # Display answer
+                            with col_info1:
+                                st.markdown("### 🤖 AI Analysis")
+                                if result.get('answer'):
+                                    st.markdown(result['answer'])
+                                else:
+                                    st.warning("No analysis generated")
+                        else:
+                            st.error(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+                    else:
+                        st.error(f"❌ API returned status code: {response.status_code}")
+                        st.code(response.text)
+                        
+                except requests.exceptions.ConnectionError:
+                    st.error("❌ Cannot connect to API. Please ensure the backend is running.")
+                    st.info("Run: `.\\windows_dev_mode.ps1` to start all services")
+                except requests.exceptions.Timeout:
+                    st.error("❌ Request timed out. The analysis is taking too long.")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
         else:
             st.warning("⚠️ Please provide a question and either upload files or enable database querying.")
 
