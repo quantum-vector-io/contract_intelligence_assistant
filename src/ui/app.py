@@ -92,7 +92,7 @@ else:
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔧 System Status")
     try:
-        response = requests.get(f"http://localhost:{settings.api_port}/health", timeout=2)
+        response = requests.get(f"http://localhost:{settings.api_port}/health", timeout=10)
         if response.status_code == 200:
             st.sidebar.success("✅ API Connected")
         else:

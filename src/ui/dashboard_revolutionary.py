@@ -35,41 +35,207 @@ REFRESH_INTERVAL = 30  # seconds
 
 
 class DashboardAPI:
-    """API client for dashboard data endpoints."""
+    """API client for dashboard data endpoints with fallback to mock data."""
     
     def __init__(self, base_url: str = API_BASE_URL):
         self.base_url = base_url
+        self.use_mock_data = False
+        
+    def _get_mock_data(self) -> Dict[str, Any]:
+        """Generate comprehensive mock data for dashboard demonstration."""
+        from datetime import datetime, timedelta
+        import random
+        
+        # Current timestamp
+        now = datetime.now()
+        
+        # Generate realistic mock data
+        partners = [
+            "JustEat UK", "Lieferando DE", "Thuisbezorgd NL", "SkipTheDishes CA",
+            "Grubhub US", "DoorDash US", "Uber Eats Global", "Deliveroo UK",
+            "Foodpanda Asia", "Zomato India", "Swiggy India", "iFood Brazil"
+        ]
+        
+        # Recent activity data
+        recent_activity = []
+        for i in range(50):
+            activity_date = now - timedelta(days=random.randint(0, 30))
+            partner = random.choice(partners)
+            doc_types = ["contract", "payout_report", "amendment", "addendum"]
+            activity = {
+                "title": f"{partner}_{'Contract' if random.choice(doc_types) == 'contract' else 'PayoutReport'}_{activity_date.strftime('%Y-%m-%d')}",
+                "type": random.choice(doc_types),
+                "partner": partner,
+                "created_at": activity_date.isoformat()
+            }
+            recent_activity.append(activity)
+        
+        # Partner statistics
+        top_partners = {}
+        for partner in partners:
+            top_partners[partner] = random.randint(5, 45)
+        
+        return {
+            "document_overview": {
+                "total_documents": 247,
+                "document_types": {
+                    "contract": 89,
+                    "payout_report": 134,
+                    "amendment": 15,
+                    "addendum": 9
+                },
+                "partner_statistics": {
+                    "total_partners": len(partners),
+                    "partners_with_documents": len(partners) - 1,
+                    "coverage_percentage": 91.7,
+                    "top_partners": top_partners
+                },
+                "recent_activity": recent_activity
+            },
+            "financial_metrics": {
+                "financial_documents": {
+                    "total_financial_documents": 143,
+                    "avg_docs_per_partner": 11.9,
+                    "partner_breakdown": {
+                        partner: random.randint(5, 25) for partner in partners[:8]
+                    }
+                },
+                "commission_analysis": {
+                    "partners_with_commission_data": 9,
+                    "commission_structure_types": {
+                        "percentage": 6,
+                        "fixed": 2,
+                        "hybrid": 1
+                    }
+                },
+                "discrepancy_statistics": {
+                    "total_analyses_performed": 89,
+                    "discrepancies_detected": 12,
+                    "discrepancy_rate": 13.5,
+                    "avg_discrepancy_amount": 1247.83
+                }
+            },
+            "system_health": {
+                "overall_status": "healthy",
+                "last_checked": now.strftime("%Y-%m-%d %H:%M:%S"),
+                "streamlit": {
+                    "status": "healthy",
+                    "port": 8501,
+                    "pid": 12345
+                },
+                "python": {
+                    "status": "healthy",
+                    "version": "3.10.0",
+                    "path": "G:/Software_Engineering/contract_intelligence_assistant/venv/Scripts/python.exe"
+                },
+                "fastapi": self.check_api_health(),
+                "performance": {
+                    "total_documents_indexed": 247,
+                    "index_size_mb": 145.7,
+                    "avg_document_size_kb": 627.3,
+                    "index_size_bytes": 152698880
+                }
+            },
+            "query_analytics": {
+                "total_queries_today": random.randint(50, 200),
+                "avg_response_time_ms": random.randint(150, 800),
+                "query_success_rate": random.uniform(85.0, 98.5),
+                "peak_usage_hours": [9, 14, 16],
+                "most_common_query_types": [
+                    {"type": "Document Search", "count": random.randint(20, 50)},
+                    {"type": "Financial Analysis", "count": random.randint(15, 35)},
+                    {"type": "Partner Query", "count": random.randint(10, 25)},
+                    {"type": "Discrepancy Check", "count": random.randint(5, 15)}
+                ]
+            },
+            "generated_at": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "cache_status": {
+                "documents": True,
+                "financial": True,
+                "health": True,
+                "analytics": False
+            }
+        }
     
     def get_comprehensive_data(self) -> Optional[Dict[str, Any]]:
-        """Get all dashboard data in a single request."""
-        try:
-            response = requests.get(f"{self.base_url}/dashboard/comprehensive", timeout=10)
-            if response.status_code == 200:
-                return response.json().get("data", {})
-            else:
-                st.error(f"Failed to fetch dashboard data: {response.status_code}")
-                return None
-        except requests.exceptions.RequestException as e:
-            st.error(f"API connection error: {e}")
-            return None
+        """Get all dashboard data in a single request with fallback to mock data."""
+        if not self.use_mock_data:
+            try:
+                response = requests.get(f"{self.base_url}/dashboard/comprehensive", timeout=15)
+                if response.status_code == 200:
+                    return response.json().get("data", {})
+                else:
+                    st.warning(f"API returned status {response.status_code}. Using demo data.")
+                    self.use_mock_data = True
+            except requests.exceptions.RequestException as e:
+                st.info(f"💡 API not available. Running in demo mode with sample data.")
+                self.use_mock_data = True
+        
+        # Return mock data
+        return self._get_mock_data()
     
     def get_quick_stats(self) -> Optional[Dict[str, Any]]:
-        """Get quick summary statistics."""
-        try:
-            response = requests.get(f"{self.base_url}/dashboard/stats/summary", timeout=5)
-            if response.status_code == 200:
-                return response.json().get("data", {})
-            return None
-        except requests.exceptions.RequestException:
-            return None
+        """Get quick summary statistics with fallback."""
+        if not self.use_mock_data:
+            try:
+                response = requests.get(f"{self.base_url}/dashboard/stats/summary", timeout=10)
+                if response.status_code == 200:
+                    return response.json().get("data", {})
+            except requests.exceptions.RequestException:
+                self.use_mock_data = True
+        
+        # Return simplified mock stats
+        return {
+            "total_documents": 247,
+            "total_partners": 12,
+            "system_status": "demo_mode"
+        }
     
     def refresh_cache(self) -> bool:
-        """Refresh dashboard cache."""
-        try:
-            response = requests.post(f"{self.base_url}/dashboard/refresh", timeout=15)
-            return response.status_code == 200
-        except requests.exceptions.RequestException:
-            return False
+        """Refresh dashboard cache with fallback."""
+        if not self.use_mock_data:
+            try:
+                response = requests.post(f"{self.base_url}/dashboard/refresh", timeout=10)
+                return response.status_code == 200
+            except requests.exceptions.RequestException:
+                self.use_mock_data = True
+        
+        # Simulate cache refresh in demo mode
+        st.success("🎭 Demo data refreshed successfully!")
+        return True
+    
+    def check_api_health(self) -> Dict[str, Any]:
+        """Check real-time API health status."""
+        endpoints = {
+            "/health": "Health",
+            "/dashboard/health": "Dashboard",
+            "/dashboard/comprehensive": "Comprehensive",
+            "/opensearch/health": "OpenSearch",
+            "/documents/stats": "Documents",
+            "/financial-analysis/health": "Financial Analysis"
+        }
+        
+        endpoint_status = {}
+        overall_healthy = True
+        
+        for endpoint, name in endpoints.items():
+            try:
+                response = requests.get(f"{self.base_url}{endpoint}", timeout=8)
+                if response.status_code == 200:
+                    endpoint_status[endpoint] = "healthy"
+                else:
+                    endpoint_status[endpoint] = "unhealthy"
+                    overall_healthy = False
+            except requests.exceptions.RequestException:
+                endpoint_status[endpoint] = "unhealthy"
+                overall_healthy = False
+        
+        return {
+            "status": "healthy" if overall_healthy else "unhealthy",
+            "service": "Contract Intelligence API",
+            "version": "0.1.0",
+            "critical_endpoints": endpoint_status
+        }
 
 
 def create_document_analytics_tab(overview_data: Dict[str, Any]):
@@ -331,35 +497,123 @@ def create_system_health_tab(health_data: Dict[str, Any]):
     with col2:
         st.write(f"**Last Checked:** {last_checked}")
     
-    # Service health breakdown
-    col1, col2 = st.columns(2)
+    # Service health breakdown - show all available services
+    st.subheader("🔧 Service Health Status")
     
-    with col1:
-        st.subheader("🔍 OpenSearch Health")
-        opensearch_health = health_data.get("opensearch", {})
-        opensearch_status = opensearch_health.get("status", "unknown")
-        
-        st.markdown(display_health_indicator(opensearch_status), unsafe_allow_html=True)
-        
-        # OpenSearch metrics
-        if opensearch_status in ["green", "yellow"]:
-            cluster_name = opensearch_health.get("cluster_name", "N/A")
-            node_count = opensearch_health.get("number_of_nodes", 0)
-            st.write(f"**Cluster:** {cluster_name}")
-            st.write(f"**Nodes:** {node_count}")
+    # Define service icons and display names (only for real services in the project)
+    service_config = {
+        "opensearch": {"icon": "🔍", "name": "OpenSearch"},
+        "api": {"icon": "🚀", "name": "API Server"}, 
+        "fastapi": {"icon": "⚡", "name": "FastAPI"},
+        "streamlit": {"icon": "📊", "name": "Streamlit Dashboard"},
+        "python": {"icon": "🐍", "name": "Python Runtime"},
+        "docker": {"icon": "�", "name": "Docker Engine"},
+        "docker": {"icon": "�", "name": "Docker Engine"}
+    }
     
-    with col2:
-        st.subheader("🚀 API Health")
-        api_health = health_data.get("api", {})
-        api_status = api_health.get("status", "unknown")
+    # Find all services in health_data (excluding special keys)
+    excluded_keys = {"overall_status", "last_checked", "performance", "cache_status"}
+    available_services = []
+    
+    for key, value in health_data.items():
+        if key not in excluded_keys and isinstance(value, dict):
+            available_services.append(key)
+    
+    # Display services in responsive grid
+    if available_services:
+        # Calculate columns (max 3 per row for better layout)
+        num_services = len(available_services)
+        cols_per_row = min(3, num_services)
+        rows_needed = (num_services + cols_per_row - 1) // cols_per_row
         
-        st.markdown(display_health_indicator(api_status), unsafe_allow_html=True)
-        
-        # API metrics
-        service = api_health.get("service", "N/A")
-        version = api_health.get("version", "N/A")
-        st.write(f"**Service:** {service}")
-        st.write(f"**Version:** {version}")
+        for row in range(rows_needed):
+            cols = st.columns(cols_per_row)
+            
+            for col_idx in range(cols_per_row):
+                service_idx = row * cols_per_row + col_idx
+                
+                if service_idx < len(available_services):
+                    service_key = available_services[service_idx]
+                    service_data = health_data.get(service_key, {})
+                    
+                    # Get service config
+                    config = service_config.get(service_key, {"icon": "⚙️", "name": service_key.title()})
+                    
+                    with cols[col_idx]:
+                        st.markdown(f"**{config['icon']} {config['name']}**")
+                        
+                        # Service status
+                        service_status = service_data.get("status", "unknown")
+                        st.markdown(display_health_indicator(service_status), unsafe_allow_html=True)
+                        
+                        # Service-specific metrics
+                        if service_key == "opensearch":
+                            if service_status in ["green", "yellow", "healthy"]:
+                                cluster_name = service_data.get("cluster_name", "N/A")
+                                node_count = service_data.get("number_of_nodes", 0)
+                                st.write(f"**Cluster:** {cluster_name}")
+                                st.write(f"**Nodes:** {node_count}")
+                        
+                        elif service_key in ["api", "fastapi"]:
+                            service_name = service_data.get("service", "N/A")
+                            version = service_data.get("version", "N/A")
+                            st.write(f"**Service:** {service_name}")
+                            st.write(f"**Version:** {version}")
+                            
+                            # Critical endpoints health check
+                            critical_endpoints = service_data.get("critical_endpoints", {})
+                            if critical_endpoints:
+                                st.write("**Critical Endpoints:**")
+                                for endpoint, status in critical_endpoints.items():
+                                    endpoint_name = endpoint.replace("/", "").replace("-", " ").title()
+                                    if endpoint_name == "":
+                                        endpoint_name = "Root"
+                                    
+                                    # Create mini health indicator for each endpoint
+                                    if status == "healthy":
+                                        endpoint_icon = "🟢"
+                                    elif status == "degraded":
+                                        endpoint_icon = "🟡"
+                                    else:
+                                        endpoint_icon = "🔴"
+                                    
+                                    st.write(f"  {endpoint_icon} {endpoint_name}")
+                            else:
+                                st.write("**Status:** Basic API online")
+                        
+                        elif service_key == "streamlit":
+                            port = service_data.get("port", "N/A")
+                            pid = service_data.get("pid", "N/A")
+                            st.write(f"**Port:** {port}")
+                            st.write(f"**PID:** {pid}")
+                        
+                        elif service_key == "python":
+                            version = service_data.get("version", "N/A")
+                            path = service_data.get("path", "N/A")
+                            st.write(f"**Version:** {version}")
+                            if len(str(path)) > 20:
+                                st.write(f"**Path:** ...{str(path)[-20:]}")
+                            else:
+                                st.write(f"**Path:** {path}")
+                        
+                        elif service_key == "docker":
+                            version = service_data.get("version", "N/A")
+                            containers = service_data.get("running_containers", 0)
+                            st.write(f"**Version:** {version}")
+                            st.write(f"**Containers:** {containers}")
+                        
+                        else:
+                            # Generic metrics for other services
+                            for metric_key, metric_value in service_data.items():
+                                if metric_key != "status" and isinstance(metric_value, (str, int, float)):
+                                    display_key = metric_key.replace("_", " ").title()
+                                    if len(str(metric_value)) > 20:
+                                        display_value = f"...{str(metric_value)[-15:]}"
+                                    else:
+                                        display_value = str(metric_value)
+                                    st.write(f"**{display_key}:** {display_value}")
+    else:
+        st.info("No service health data available")
     
     # Performance metrics
     st.subheader("📈 Performance Metrics")
@@ -655,16 +909,16 @@ def init_revolutionary_styling():
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 90px;
-        min-width: 190px;
+        height: 50px;
+        min-width: 160px;
         white-space: pre-wrap;
         background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(15px);
         border: 2px solid rgba(255, 255, 255, 0.35);
         border-radius: 22px;
-        padding: 20px 32px;
+        padding: 12px 20px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 8px;
         color: #2d3748;
         transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 
@@ -1024,9 +1278,9 @@ def init_revolutionary_styling():
     @media (max-width: 768px) {
         .stTabs [data-baseweb="tab"] {
             min-width: 150px;
-            height: 80px;
-            padding: 15px 24px;
-            font-size: 12px;
+            height: 45px;
+            padding: 10px 18px;
+            font-size: 7px;
         }
         
         .dashboard-title {
@@ -1041,9 +1295,9 @@ def init_revolutionary_styling():
     @media (max-width: 480px) {
         .stTabs [data-baseweb="tab"] {
             min-width: 120px;
-            height: 70px;
-            padding: 10px 16px;
-            font-size: 10px;
+            height: 40px;
+            padding: 8px 12px;
+            font-size: 6px;
         }
         
         .dashboard-title {
@@ -1133,6 +1387,16 @@ def render_revolutionary_dashboard():
         # Initialize API client
         api_client = DashboardAPI()
         
+        # Check if running in demo mode and show status
+        if hasattr(api_client, 'use_mock_data') and api_client.use_mock_data:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.info("🎭 **Demo Mode Active** - Displaying sample data for demonstration purposes")
+            with col2:
+                if st.button("🔄 Try API", help="Attempt to reconnect to real API"):
+                    api_client.use_mock_data = False
+                    st.rerun()
+        
         # Dashboard controls
         with st.expander("🎛️ Dashboard Controls", expanded=False):
             col1, col2, col3 = st.columns(3)
@@ -1145,7 +1409,10 @@ def render_revolutionary_dashboard():
                     with st.spinner("Refreshing data..."):
                         success = api_client.refresh_cache()
                         if success:
-                            st.success("Cache refreshed successfully!")
+                            if hasattr(api_client, 'use_mock_data') and api_client.use_mock_data:
+                                st.success("🎭 Demo data refreshed!")
+                            else:
+                                st.success("Cache refreshed successfully!")
                             st.rerun()
                         else:
                             st.error("Failed to refresh cache")
@@ -1160,8 +1427,12 @@ def render_revolutionary_dashboard():
             dashboard_data = api_client.get_comprehensive_data()
         
         if not dashboard_data:
-            st.error("Failed to load dashboard data. Please check API connectivity.")
-            return
+            st.error("❌ Unable to load any data (API and demo mode failed)")
+            st.stop()
+        
+        # Show demo mode notification after data loads
+        if hasattr(api_client, 'use_mock_data') and api_client.use_mock_data:
+            st.info("🎭 **Demo Mode**: Showing sample data for Contract Intelligence Dashboard demonstration")
         
         # Extract data sections
         overview_data = dashboard_data.get("document_overview", {})
