@@ -448,26 +448,44 @@ class DashboardService:
                 # OpenSearch health
                 opensearch_health = self.opensearch_service.health_check()
                 
-                # API health (basic check)
+                # API health with critical endpoints
                 api_health = self._check_api_health()
+                
+                # Additional service checks
+                streamlit_health = self._check_streamlit_health()
+                python_health = self._check_python_health()
+                docker_health = self._check_docker_health()
                 
                 # Performance metrics
                 performance_metrics = self._get_performance_metrics()
                 
+                # Collect all services for comprehensive health assessment
+                all_services = {
+                    "opensearch": opensearch_health,
+                    "fastapi": api_health,
+                    "streamlit": streamlit_health,
+                    "python": python_health,
+                    "docker": docker_health
+                }
+                
                 return {
                     "opensearch": opensearch_health,
-                    "api": api_health,
+                    "fastapi": api_health,  # Use 'fastapi' as key for consistency
+                    "streamlit": streamlit_health,
+                    "python": python_health,
+                    "docker": docker_health,
                     "performance": performance_metrics,
-                    "overall_status": self._calculate_overall_health_status(
-                        opensearch_health, api_health
-                    ),
+                    "overall_status": self._calculate_overall_health_status_advanced(all_services),
                     "last_checked": datetime.now().isoformat()
                 }
             except Exception as e:
                 logger.error(f"Error computing system health: {e}")
                 return {
                     "opensearch": {"status": "error"},
-                    "api": {"status": "error"},
+                    "fastapi": {"status": "error"},
+                    "streamlit": {"status": "error"},
+                    "python": {"status": "error"},
+                    "docker": {"status": "error"},
                     "performance": {},
                     "overall_status": "unhealthy",
                     "error": str(e)
@@ -475,19 +493,323 @@ class DashboardService:
         
         return self._get_cached_or_compute("system_health", compute_system_health)
     
-    def _check_api_health(self) -> Dict[str, Any]:
-        """Check API service health.
+    def _check_streamlit_health(self) -> Dict[str, Any]:
+        """Check Streamlit service health.
         
         Returns:
-            Dict with API health status.
+            Dict with Streamlit health status.
         """
+        import subprocess
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Check if Streamlit is running on port 8501
+            import socket
+            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex(('localhost', 8501))
+            sock.close()
+            
+            if result == 0:
+                # Port is open, Streamlit is running
+                return {
+                    "status": "healthy",
+                    "service": "streamlit",
+                    "port": 8501,
+                    "pid": "running"
+                }
+            else:
+                return {
+                    "status": "unhealthy",
+                    "service": "streamlit", 
+                    "port": 8501,
+                    "pid": "not_running"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error checking Streamlit health: {e}")
+            return {
+                "status": "unhealthy",
+                "service": "streamlit",
+                "error": str(e)
+            }
+    
+    def _check_python_health(self) -> Dict[str, Any]:
+        """Check Python runtime health.
+        
+        Returns:
+            Dict with Python health status.
+        """
+        import sys
+        import platform
+        
         return {
             "status": "healthy",
-            "service": "fastapi",
-            "version": settings.app_version,
-            "debug_mode": settings.debug
+            "service": "python",
+            "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "path": sys.executable,
+            "platform": platform.system()
         }
     
+    def _check_docker_health(self) -> Dict[str, Any]:
+        """Check Docker service health.
+        
+        Returns:
+            Dict with Docker health status.
+        """
+        import subprocess
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Check Docker version
+            result = subprocess.run(
+                ["docker", "--version"], 
+                capture_output=True, 
+                text=True, 
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                version = result.stdout.strip().split()[-1] if result.stdout else "unknown"
+                
+                # Check running containers
+                container_result = subprocess.run(
+                    ["docker", "ps", "-q"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                running_containers = len(container_result.stdout.strip().split('\n')) if container_result.stdout.strip() else 0
+                
+                return {
+                    "status": "healthy",
+                    "service": "docker",
+                    "version": version,
+                    "running_containers": running_containers
+                }
+            else:
+                return {
+                    "status": "unhealthy",
+                    "service": "docker",
+                    "error": "Docker not available"
+                }
+                
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "degraded",
+                "service": "docker",
+                "error": "Docker command timeout"
+            }
+        except Exception as e:
+            logger.error(f"Error checking Docker health: {e}")
+            return {
+                "status": "unhealthy",
+                "service": "docker",
+                "error": str(e)
+            }
+    
+    def _check_api_health(self) -> Dict[str, Any]:
+        """Check API service health with critical endpoints monitoring.
+        
+        Returns:
+            Dict with API health status and critical endpoints status.
+        """
+        import requests
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        base_url = f"http://localhost:{settings.api_port}"
+        
+        # Define critical endpoints to monitor
+        critical_endpoints = {
+            "/": "root",
+            "/health": "basic_health",
+            "/dashboard/health": "dashboard_health",
+            "/dashboard/comprehensive": "dashboard_data",
+            "/opensearch/health": "opensearch_api",
+            "/documents/stats": "document_stats",
+            "/financial-analysis/health": "financial_analysis"
+        }
+        
+        endpoints_status = {}
+        overall_healthy = True
+        
+        # Test each critical endpoint
+        for endpoint, name in critical_endpoints.items():
+            try:
+                response = requests.get(f"{base_url}{endpoint}", timeout=3)
+                
+                if response.status_code == 200:
+                    endpoints_status[endpoint] = "healthy"
+                elif response.status_code in [503, 500]:
+                    endpoints_status[endpoint] = "unhealthy"
+                    overall_healthy = False
+                else:
+                    endpoints_status[endpoint] = "degraded"
+                    
+            except requests.exceptions.ConnectionError:
+                endpoints_status[endpoint] = "unhealthy"
+                overall_healthy = False
+                logger.warning(f"API endpoint {endpoint} connection failed")
+            except requests.exceptions.Timeout:
+                endpoints_status[endpoint] = "degraded"
+                logger.warning(f"API endpoint {endpoint} timeout")
+            except Exception as e:
+                endpoints_status[endpoint] = "unhealthy"
+                overall_healthy = False
+                logger.error(f"API endpoint {endpoint} error: {e}")
+        
+        # Determine overall API status based on critical endpoints
+        healthy_count = sum(1 for status in endpoints_status.values() if status == "healthy")
+        total_count = len(endpoints_status)
+        
+        if healthy_count == total_count:
+            api_status = "healthy"
+        elif healthy_count >= total_count * 0.7:  # 70% or more healthy
+            api_status = "degraded"
+        else:
+            api_status = "unhealthy"
+        
+        return {
+            "status": api_status,
+            "service": "fastapi",
+            "version": settings.app_version,
+            "debug_mode": settings.debug,
+            "critical_endpoints": endpoints_status,
+            "endpoints_summary": f"{healthy_count}/{total_count} healthy"
+        }
+    
+    def _check_streamlit_health(self) -> Dict[str, Any]:
+        """Check Streamlit dashboard health.
+        
+        Returns:
+            Dict with Streamlit service status.
+        """
+        import requests
+        
+        try:
+            # Check if Streamlit is running on port 8501
+            streamlit_url = "http://localhost:8501"
+            response = requests.get(streamlit_url, timeout=3)
+            
+            if response.status_code == 200:
+                status = "healthy"
+            else:
+                status = "degraded"
+                
+            return {
+                "status": status,
+                "service": "streamlit",
+                "port": 8501,
+                "url": streamlit_url
+            }
+            
+        except requests.exceptions.ConnectionError:
+            return {
+                "status": "unhealthy",
+                "service": "streamlit",
+                "port": 8501,
+                "error": "Connection refused"
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "service": "streamlit",
+                "error": str(e)
+            }
+    
+    def _check_python_health(self) -> Dict[str, Any]:
+        """Check Python runtime health.
+        
+        Returns:
+            Dict with Python runtime status.
+        """
+        import sys
+        import platform
+        
+        try:
+            return {
+                "status": "healthy",
+                "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                "path": sys.executable,
+                "platform": platform.system(),
+                "architecture": platform.architecture()[0]
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+    
+    def _check_docker_health(self) -> Dict[str, Any]:
+        """Check Docker engine health.
+        
+        Returns:
+            Dict with Docker engine status.
+        """
+        import subprocess
+        
+        try:
+            # Check Docker version
+            result = subprocess.run(
+                ["docker", "--version"], 
+                capture_output=True, 
+                text=True, 
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                
+                # Check running containers
+                containers_result = subprocess.run(
+                    ["docker", "ps", "--format", "{{.ID}}"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                
+                running_containers = len(containers_result.stdout.strip().split('\n')) if containers_result.stdout.strip() else 0
+                
+                return {
+                    "status": "healthy",
+                    "version": version.replace("Docker version ", ""),
+                    "running_containers": running_containers,
+                    "service": "docker"
+                }
+            else:
+                return {
+                    "status": "unhealthy",
+                    "error": "Docker command failed",
+                    "service": "docker"
+                }
+                
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "degraded",
+                "error": "Docker command timeout",
+                "service": "docker"
+            }
+        except FileNotFoundError:
+            return {
+                "status": "unhealthy",
+                "error": "Docker not installed or not in PATH",
+                "service": "docker"
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "service": "docker"
+            }
+
     def _get_performance_metrics(self) -> Dict[str, Any]:
         """Get system performance metrics.
         
@@ -554,6 +876,48 @@ class DashboardService:
         if opensearch_ok and api_ok:
             return "healthy"
         elif opensearch_ok or api_ok:
+            return "degraded"
+        else:
+            return "unhealthy"
+    
+    def _calculate_overall_health_status_advanced(self, all_services: Dict[str, Dict[str, Any]]) -> str:
+        """Calculate overall system health status based on all services.
+        
+        Args:
+            all_services: Dict containing health data for all services.
+            
+        Returns:
+            str: Overall health status.
+        """
+        critical_services = ["opensearch", "api", "fastapi"]  # Core services
+        optional_services = ["streamlit", "python", "docker"]  # Supporting services
+        
+        critical_healthy = 0
+        critical_total = 0
+        optional_healthy = 0
+        optional_total = 0
+        
+        for service_name, service_data in all_services.items():
+            status = service_data.get('status', 'unknown')
+            is_healthy = status in ['healthy', 'green', 'yellow']
+            
+            if service_name in critical_services:
+                critical_total += 1
+                if is_healthy:
+                    critical_healthy += 1
+            elif service_name in optional_services:
+                optional_total += 1
+                if is_healthy:
+                    optional_healthy += 1
+        
+        # Calculate health percentages
+        critical_health_rate = critical_healthy / max(critical_total, 1)
+        optional_health_rate = optional_healthy / max(optional_total, 1)
+        
+        # Overall health logic
+        if critical_health_rate == 1.0 and optional_health_rate >= 0.8:
+            return "healthy"
+        elif critical_health_rate >= 0.5:
             return "degraded"
         else:
             return "unhealthy"
